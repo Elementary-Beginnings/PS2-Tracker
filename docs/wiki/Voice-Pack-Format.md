@@ -1,4 +1,7 @@
-# Voice packs and triggers
+# Voice Pack Format
+
+Reference for pack authors: file formats, triggers and keys. For using packs in
+the app see [Voice Packs](Voice-Packs).
 
 The PS2 Session Tracker plays tones or voice lines from voice packs on events. There
 are two formats, recognised automatically on import:

@@ -25,7 +25,7 @@ days, **L** = a week or more.
   Chart.js covers line, bar and combined charts, draws on canvas, needs no `eval`
   (CSP `script-src 'self'` stays) and is loaded only when the page is opened
   (~68 kB gzip).
-- [x] **Privacy documentation** for export/import in `docs/permissions.md`.
+- [x] **Privacy documentation** for export/import in `docs/wiki/Permissions-and-Privacy.md`.
 - [x] **Events page** reorganised, conditions editable in the user interface.
 - [x] **Hit feedback** in the crosshair (kill, headshot, assist, vehicle, vehicle
   damage).

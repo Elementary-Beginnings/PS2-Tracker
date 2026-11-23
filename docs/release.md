@@ -96,6 +96,20 @@ checked with `zizmor`. Downloads can be verified with
 - If the release already exists (workflow run a second time), `gh release
   create` fails; edit the release on GitHub instead.
 
+## Wiki
+
+User guides are in `docs/wiki/` (file name = wiki page name, links between
+pages as `[Text](Page-Name)`, images as absolute
+`raw.githubusercontent.com/.../main/docs/screenshots/...` URLs).
+`.github/workflows/wiki.yml` mirrors the folder into the GitHub wiki on every
+push to `main` that changes it (or manually via *Run workflow*), with the
+job's `GITHUB_TOKEN` (`contents: write`); pages edited in the wiki itself are
+overwritten. `tools/check_links.py` checks the wiki links in CI.
+
+Once (maintainer): enable the wiki (*Settings → Features → Wikis*, editing
+restricted to collaborators) and create any first page, so that GitHub creates
+the wiki repository; the first workflow run then replaces it.
+
 ## Update signature (Tauri updater)
 
 The in-app updater only installs files whose signature matches the public key

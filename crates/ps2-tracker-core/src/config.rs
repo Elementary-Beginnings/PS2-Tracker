@@ -352,7 +352,7 @@ pub struct CrosshairSettings {
     pub monitor: String,
     pub hotkey_toggle: String,
     pub hotkey_cycle: String,
-    /// Only show while the game window is active (X11/XWayland, see README).
+    /// Only show while the game window is active (X11/XWayland, see docs/wiki/Crosshair.md).
     pub auto_hide: bool,
     /// Which window is the game. All fields empty = auto-detect PlanetSide 2.
     pub game_window: GameWindowRule,

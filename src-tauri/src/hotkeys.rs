@@ -1,5 +1,5 @@
 //! Global hotkeys (X11/XWayland) and equivalent command line switches
-//! (for KDE shortcuts under Wayland, see README).
+//! (for KDE shortcuts under Wayland, see docs/wiki/Hotkeys.md).
 
 use tauri::AppHandle;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};

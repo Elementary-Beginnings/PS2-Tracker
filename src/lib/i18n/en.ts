@@ -516,7 +516,7 @@ export const en = {
     condCategory: (c: string) => `Category: ${c} `,
     condVehicle: (v: string) => `Vehicle: ${v}`,
     conditionsHint:
-      "Conditions (count, headshot, weapon category, vehicle) are maintained in voicepack.toml – see docs/voicepacks.md for the format.",
+      "Conditions (count, headshot, weapon category, vehicle) are maintained in voicepack.toml – format: wiki page “Voice Pack Format” (https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Voice-Pack-Format).",
     wizardTitle: "Mapping assistant",
     createPack: "Create pack",
     wizardFolder: (f: string) => `Folder: ${f}.`,
@@ -717,7 +717,7 @@ export const en = {
     eventsTitle: "Events and triggers",
     showAll: (n: number) => `also show ${n} Recursion keys without a trigger`,
     triggersHint: (file: string) =>
-      `Trigger conditions are our own definitions based on ESS data and can be changed in ${file} (template and description: docs/voicepacks.md). Keys without a trigger are imported but never fire.`,
+      `Trigger conditions are our own definitions based on ESS data and can be changed in ${file} (template and description: wiki page “Voice Pack Format”, https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Voice-Pack-Format). Keys without a trigger are imported but never fire.`,
     noTrigger: "no trigger yet",
     on: "on",
     choose: "File …",
@@ -810,6 +810,8 @@ export const en = {
     version: "Version",
     commit: "Commit",
     built: "Build date",
+    help: "Guides (wiki)",
+    issues: "Bug reports",
     copy: "Copy for a bug report",
     copyHint: "click to copy",
     copied: "Version details copied",

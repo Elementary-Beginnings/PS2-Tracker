@@ -1,8 +1,17 @@
-# Permissions, access and data flows
+# Permissions and Privacy
 
 This page describes what the PS2 Session Tracker does on the computer and on the
-network. Each point names the place in the source code where it can be checked.
-State: version 0.2.0 (unreleased).
+network. Each point names the place in the source code where it can be checked
+(paths relative to the [repository](https://github.com/Elementary-Beginnings/ps2-tracker)).
+State: version 1.0.0.
+
+**In short:** the app connects only to `census.daybreakgames.com` and
+`push.planetside2.com` – and, only after opt-in, to the update endpoint
+(GitHub releases) and locally to Discord –, sends no telemetry, reads only its
+own folders and the files you import (packs, crosshairs, sessions – always
+through the file dialog), writes exports only to the chosen place, writes the
+service ID only to `config.toml` (mode 0600) and never accesses the game. Under
+X11/XWayland it reads window titles and classes to recognise the game window.
 
 ## Network
 
@@ -325,7 +334,7 @@ rules, no hooks; no root is needed at runtime. The AppImage installs nothing.
   is opened only with `PROCESS_QUERY_LIMITED_INFORMATION` (crate
   `active-win-pos-rs`, `src/win/platform_api.rs`). There is no list of all windows
   on Windows (it would need unsafe FFI calls that the project keeps out).
-- Not code-signed: SmartScreen warns; checksum see README.
+- Not code-signed: SmartScreen warns; compare the checksum, see [Installation](Installation#windows-1011).
 
 ## What the app does not do
 

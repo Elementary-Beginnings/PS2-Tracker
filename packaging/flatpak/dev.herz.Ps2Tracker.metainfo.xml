@@ -22,6 +22,8 @@
   <launchable type="desktop-id">dev.herz.Ps2Tracker.desktop</launchable>
   <url type="homepage">https://github.com/Elementary-Beginnings/ps2-tracker</url>
   <url type="bugtracker">https://github.com/Elementary-Beginnings/ps2-tracker/issues</url>
+  <url type="faq">https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Troubleshooting-and-FAQ</url>
+  <url type="help">https://github.com/Elementary-Beginnings/ps2-tracker/wiki</url>
   <url type="vcs-browser">https://github.com/Elementary-Beginnings/ps2-tracker</url>
   <categories>
     <category>Game</category>

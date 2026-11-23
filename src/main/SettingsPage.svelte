@@ -4,7 +4,7 @@
   import { api, errorText, inTauri } from "../lib/api";
   import type { Config, HotkeyFailure, PathsInfo, ServiceIdSource } from "../lib/types";
   import IntegrationsSettings from "./IntegrationsSettings.svelte";
-  import { appInfo, infoLine, loadAppInfo } from "../lib/appInfo";
+  import { appInfo, infoLine, loadAppInfo, ISSUES_URL, WIKI_URL } from "../lib/appInfo";
 
   let {
     config,
@@ -158,6 +158,8 @@
           <tr><td class="muted">{t.about.version}</td><td class="mono">{$appInfo.version}</td></tr>
           <tr><td class="muted">{t.about.commit}</td><td class="mono">{$appInfo.commit}</td></tr>
           <tr><td class="muted">{t.about.built}</td><td class="mono">{$appInfo.build_date || "–"}</td></tr>
+          <tr><td class="muted">{t.about.help}</td><td class="mono small">{WIKI_URL}</td></tr>
+          <tr><td class="muted">{t.about.issues}</td><td class="mono small">{ISSUES_URL}</td></tr>
         </tbody>
       </table>
       <div class="row"><button onclick={copyInfo}>{t.about.copy}</button></div>

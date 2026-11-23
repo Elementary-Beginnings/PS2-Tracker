@@ -1,5 +1,5 @@
 //! Open voice pack format: a folder (or ZIP) with `voicepack.toml` and audio files.
-//! Format description: `docs/voicepacks.md`.
+//! Format description: `docs/wiki/Voice-Pack-Format.md`.
 
 use std::io::{Read, Write};
 use std::path::{Component, Path, PathBuf};

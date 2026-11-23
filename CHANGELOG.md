@@ -29,6 +29,10 @@ after [SemVer](https://semver.org/).
 - Code scanning with CodeQL (Rust, JavaScript/TypeScript, workflows), OpenSSF
   Scorecard and dependency review on pull requests (vulnerabilities from
   moderate up, no GPL/AGPL/LGPL dependencies).
+- **Guides moved to the GitHub wiki** (source in `docs/wiki/`, published by a
+  workflow); the README files are short overviews with links. *Settings →
+  Advanced → About* shows the wiki and issue addresses; the Flatpak metainfo
+  links the wiki and the FAQ.
 
 ### Fixed
 

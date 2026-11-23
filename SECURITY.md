@@ -7,7 +7,7 @@ privately through GitHub's private vulnerability reporting instead:
 [Security → Report a vulnerability](https://github.com/Elementary-Beginnings/ps2-tracker/security/advisories/new). Only the
 maintainers can read the report.
 
-Include the version (first line of the log, see README “Troubleshooting”), your
+Include the version (Settings → Advanced → About, or the first line of the log; see [Troubleshooting](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Troubleshooting-and-FAQ)), your
 platform, steps to reproduce and – if a file triggers the problem – a minimal
 synthetic sample (no third-party sounds or packs).
 
@@ -33,7 +33,8 @@ The app runs locally and talks only to the Daybreak Census API
 (`census.daybreakgames.com`, `push.planetside2.com`) and – if enabled – serves an
 OBS endpoint on `127.0.0.1`. It never touches the game process. What it reads and
 writes, with the source locations, is documented in
-[`docs/permissions.md`](docs/permissions.md).
+[Permissions and Privacy](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Permissions-and-Privacy)
+in the wiki (source: [`docs/wiki/Permissions-and-Privacy.md`](docs/wiki/Permissions-and-Privacy.md)).
 
 In scope, for example: code execution or file access outside the app's folders
 through a crafted voice pack, crosshair, session file or Census/ESS response;

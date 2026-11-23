@@ -1,0 +1,54 @@
+# Publishes docs/wiki/ to the GitHub wiki (<repo>.wiki.git) on every push to
+# main that changes it. The wiki is a mirror: pages edited directly in the wiki
+# are overwritten. No third-party action; the token goes to git only as an
+# HTTP header from the environment and is never written to a file or the log.
+# Prerequisite (once, by hand): enable the wiki and create any first page, so
+# that GitHub creates the wiki repository.
+name: Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/wiki/**"
+      - ".github/workflows/wiki.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Sync wiki
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push to the repository's wiki (<repo>.wiki.git)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Mirror docs/wiki into the wiki repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -eu
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          git -c "http.extraheader=$auth" clone --quiet --depth 1 \
+            "https://github.com/${REPO}.wiki.git" "$RUNNER_TEMP/wiki"
+          rsync -a --delete --exclude .git docs/wiki/ "$RUNNER_TEMP/wiki/"
+          cd "$RUNNER_TEMP/wiki"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki is up to date."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit --quiet -m "Sync wiki from ${GITHUB_SHA}"
+          git -c "http.extraheader=$auth" push --quiet origin HEAD
+          git log --oneline -1

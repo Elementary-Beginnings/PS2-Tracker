@@ -1,6 +1,6 @@
 //! Loader for Recursion voice packs (`<Name>.rtst_vpk` + audio folder) as they
 //! are on disk. Format derived from a real pack and its read-me only
-//! (see `recursion_mapping.rs`, `docs/voicepacks.md`).
+//! (see `recursion_mapping.rs`, `docs/wiki/Voice-Pack-Format.md`).
 //!
 //! Security: XML without DTD/entity resolution (only the five predefined entities
 //! and character references), size limit, paths only inside the pack folder,

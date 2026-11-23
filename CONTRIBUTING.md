@@ -1,7 +1,12 @@
 # Contributing
 
 Thanks for your interest! The documentation is in English; the README is also
-kept in German (`README.de.md`, update both). Issues, pull requests and code
+kept in German (`README.de.md`, update both). User guides live in the
+[wiki](https://github.com/Elementary-Beginnings/ps2-tracker/wiki); its source
+is `docs/wiki/` (one file per page, file name = page name, links between pages
+as `[Text](Page-Name)`), published by `.github/workflows/wiki.yml` on every
+push to `main`. Edit the files there, not the wiki itself – direct wiki edits
+are overwritten. Issues, pull requests and code
 comments may be in English or German; commit messages in this repository are
 German. UI texts are English (`src/lib/i18n/en.ts`).
 
@@ -19,8 +24,8 @@ German. UI texts are English (`src/lib/i18n/en.ts`).
   and IDs (`DemoSoldier…`, `5428000000000000042`). Real ESS payloads must be
   pseudonymised before they go into `tests/fixtures/`.
 - **No hit detection.** The Census event stream has no damage or hit events for
-  infantry; features must not pretend otherwise (see the hit feedback section in
-  the README).
+  infantry; features must not pretend otherwise (see
+  [Crosshair](docs/wiki/Crosshair.md#hit-feedback) in the wiki).
 
 ## Development
 
@@ -42,7 +47,7 @@ x86_64-pc-windows-msvc -p ps2-tracker`.
 New Tauri commands go into the `invoke_handler` (`src-tauri/src/main.rs`),
 `COMMANDS` (`src-tauri/build.rs`) and the capability of the window that uses them
 (`src-tauri/capabilities/*.json`); the test `every_command_is_declared_and_allowed`
-fails otherwise. Screenshots for the README come from the browser preview with
+fails otherwise. Screenshots for the README and the wiki come from the browser preview with
 demo data (`pnpm build`, `vite preview`, URL parameters in `src/lib/demo.ts`).
 For end-to-end tests without the game, `tools/fake_ess.py` serves synthetic
 events on `ws://127.0.0.1:8765`; a debug build connects to it with

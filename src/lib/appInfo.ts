@@ -7,6 +7,10 @@ import type { AppInfo } from "./types";
 
 export const appInfo = writable<AppInfo | null>(null);
 
+/** Shown as text (the app opens no links itself). */
+export const WIKI_URL = "https://github.com/Elementary-Beginnings/ps2-tracker/wiki";
+export const ISSUES_URL = "https://github.com/Elementary-Beginnings/ps2-tracker/issues";
+
 let started = false;
 
 export function loadAppInfo(): void {

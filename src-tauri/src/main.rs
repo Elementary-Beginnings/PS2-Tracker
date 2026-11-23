@@ -318,7 +318,7 @@ fn log_environment(log_file: Option<&std::path::Path>) {
             dmabuf_source = src("WEBKIT_DISABLE_DMABUF_RENDERER"),
             webkit_disable_compositing_mode = %var("WEBKIT_DISABLE_COMPOSITING_MODE"),
             gdk_backend_source = src("GDK_BACKEND"),
-            "graphics environment (DMA-BUF renderer is switched off for the NVIDIA driver, see README)"
+            "graphics environment (DMA-BUF renderer is switched off for the NVIDIA driver, see the wiki page Troubleshooting-and-FAQ)"
         );
     }
 }

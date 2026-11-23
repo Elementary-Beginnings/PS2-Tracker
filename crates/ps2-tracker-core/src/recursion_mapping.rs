@@ -6,7 +6,7 @@
 //!
 //! The keys are adopted as our own event IDs. **What** triggers a key is not in the
 //! pack; trigger conditions are our own, openly documented definitions in
-//! `assets/triggers.default.toml` and `docs/voicepacks.md`.
+//! `assets/triggers.default.toml` and `docs/wiki/Voice-Pack-Format.md`.
 
 /// File extension of the definition file.
 pub const VPK_EXTENSION: &str = "rtst_vpk";
