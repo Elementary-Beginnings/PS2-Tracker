@@ -9,6 +9,17 @@ yanked = "deny"
 # Tauri/GTK3-Stack: gtk-rs-Crates (GTK 3) sind als "unmaintained" gemeldet,
 # solange Tauri v2 auf webkit2gtk-4.1/GTK 3 setzt. Kein Sicherheitsbefund.
 unmaintained = "workspace"
+# Consciously accepted advisories (checked 2026-11-23, cargo audit 0.23.0,
+# `cargo tree -i <crate> --target all`): all are transitive and none has a fix
+# reachable from the current stable parents. cargo-deny does not report them
+# (unmaintained/unsound are checked for workspace crates only), so they are
+# listed for cargo audit in .cargo/audit.toml; reasons there and in
+# docs/wiki/Security.md. Re-check on every Tauri update:
+#   RUSTSEC-2024-0429 glib 0.18.5 (unsound)          Tauri 2 GTK 3 stack (gtk-rs 0.18)
+#   RUSTSEC-2024-0370 proc-macro-error 1.0.4 (unm.)  build-time, glib-macros 0.18
+#   RUSTSEC-2026-0370/0371/0372 zvariant, zbus_names, zvariant_derive (unm.)
+#                                                    zbus 5 <- tauri-plugin-single-instance 2.5.5
+#   RUSTSEC-2026-0543 chrono 0.4.45 (unm.)           kdotool <- active-win-pos-rs; never compiled
 
 [bans]
 multiple-versions = "allow"

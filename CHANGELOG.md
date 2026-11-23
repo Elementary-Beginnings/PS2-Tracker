@@ -34,6 +34,9 @@ after [SemVer](https://semver.org/).
   Advanced → About* shows the wiki and issue addresses; the Flatpak metainfo
   links the wiki and the FAQ.
 - Issues use forms: bug report, feature request, voice pack problem, question.
+- Six advisories of transitive dependencies (gtk-rs 0.18 via Tauri, zbus 5,
+  chrono via a never-compiled Linux dependency) are documented as accepted
+  (`.cargo/audit.toml`, wiki page Security).
 
 ### Fixed
 

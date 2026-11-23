@@ -1,0 +1,25 @@
+# cargo audit: consciously accepted advisories. Checked 2026-11-23 with
+# cargo audit 0.23.0 and `cargo tree -i <crate> --target all`. All are
+# transitive, none has a fix reachable from the current stable parent crates
+# (`cargo update` changes none of them). Short form in docs/wiki/Security.md.
+# Re-check on every Tauri update and remove entries that no longer match.
+[advisories]
+ignore = [
+  # glib 0.18.5 – unsound VariantStrIter (fixed in glib >= 0.20). Tauri 2's
+  # GTK 3 stack (gtk/webkit2gtk 0.18 via tauri, tao, wry, muda, tray-icon)
+  # requires gtk-rs 0.18; the app does not use glib::Variant string iterators.
+  "RUSTSEC-2024-0429",
+  # proc-macro-error 1.0.4 – unmaintained. Build-time proc macro of
+  # glib-macros 0.18 (same GTK 3 stack); not part of the shipped binary.
+  "RUSTSEC-2024-0370",
+  # zvariant 5.15.1, zbus_names 4.3.5, zvariant_derive 5.15.1 – unmaintained,
+  # merged into zbus 6. Pulled in by zbus 5 of tauri-plugin-single-instance
+  # 2.5.5, the newest stable release (zbus 6 only in 3.0.0-alpha).
+  "RUSTSEC-2026-0370",
+  "RUSTSEC-2026-0371",
+  "RUSTSEC-2026-0372",
+  # chrono 0.4.45 – unmaintained. Only in Cargo.lock via kdotool, a
+  # Linux-only dependency of active-win-pos-rs, which the app uses on Windows
+  # only: never compiled for a shipped target. The app does not use chrono.
+  "RUSTSEC-2026-0543",
+]

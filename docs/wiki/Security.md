@@ -43,3 +43,20 @@ Everything with source code locations:
   dependency review on pull requests, Dependabot with a 7-day cooldown.
 - Workflows with minimal permissions per job, actions pinned to commit SHAs,
   checked with zizmor; release secrets only in a protected environment.
+
+## Accepted advisories
+
+No known vulnerability affects the app. These advisories (warnings, no CVE)
+concern transitive dependencies without a fix reachable from the current
+stable parent crates; they are accepted on purpose (checked 2026-11-23, listed
+in [`.cargo/audit.toml`](https://github.com/Elementary-Beginnings/ps2-tracker/blob/main/.cargo/audit.toml))
+and re-checked with every Tauri update. OpenSSF Scorecard still counts them.
+
+| Advisory | Crate | Kind | Why it is there |
+|---|---|---|---|
+| RUSTSEC-2024-0429 | glib 0.18.5 | unsound | Tauri 2's GTK 3 stack (gtk-rs 0.18); the affected `VariantStrIter` is not used; fixed only in gtk-rs ≥ 0.20 |
+| RUSTSEC-2024-0370 | proc-macro-error 1.0.4 | unmaintained | build-time macro of glib-macros 0.18; not in the binary |
+| RUSTSEC-2026-0370 | zvariant 5.15.1 | unmaintained | zbus 5 of tauri-plugin-single-instance 2.5.5 (newest stable); merged into zbus 6 |
+| RUSTSEC-2026-0371 | zbus_names 4.3.5 | unmaintained | as above |
+| RUSTSEC-2026-0372 | zvariant_derive 5.15.1 | unmaintained | as above |
+| RUSTSEC-2026-0543 | chrono 0.4.45 | unmaintained | only in `Cargo.lock` via kdotool (Linux part of the Windows-only active-win-pos-rs); never compiled |
