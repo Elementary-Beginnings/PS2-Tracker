@@ -5,6 +5,8 @@ after [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.3] – 2026-11-23
+
 ### Fixed
 
 - Flatpak bundle: built with Flathub's tooling (`flatpak-github-actions` in
