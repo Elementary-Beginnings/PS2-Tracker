@@ -5,6 +5,21 @@ after [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Flatpak bundle: built with Flathub's tooling (`flatpak-github-actions` in
+  the `gnome-51` container) instead of Ubuntu 22.04's `flatpak-builder`, which
+  lacks `appstream-compose` for the GNOME 51 runtime; 1.0.2 shipped without
+  the bundle.
+
+### Changed
+
+- Release workflow: can also be started by button (*Run workflow* with the
+  version); it then creates the tag itself and builds that commit. The
+  Flatpak build is a workflow of its own that can be run before a tag
+  (manually and on pull requests touching the packaging). Helper jobs run on
+  Ubuntu 24.04; the Linux binaries stay on 22.04 for the older glibc.
+
 ## [1.0.2] – 2026-11-23
 
 ### Fixed

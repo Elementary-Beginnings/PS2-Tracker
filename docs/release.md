@@ -48,19 +48,37 @@ the line for bug reports); the log start and `--version` print the same.
    run non-interactively it only prints the commands.
 3. Check (`git show vX.Y.Z`), then push. The tag starts the release workflow.
 
+**Alternative: release by button.** After step 2 without the tag (or with a
+version commit made otherwise) and `main` pushed: *Actions → Release → Run
+workflow* on `main` with input `version` = the version in `Cargo.toml`. The
+first job checks the version files, creates the annotated tag `vX.Y.Z` on
+exactly that commit through the API (`GITHUB_TOKEN`, `contents: write`) and
+fails if the tag exists; all builds then check out that commit. A tag created
+with `GITHUB_TOKEN` starts no new workflow run, so the same run builds and
+publishes it. Prerequisites: the environment `release` allows `main` besides
+`v*` tags, and a tag ruleset that restricts creating `v*` tags lists
+“GitHub Actions” (or the Actions integration) as bypass actor.
+
+**Test the Flatpak before a tag:** *Actions → Flatpak → Run workflow* on
+`main` (or any pull request touching `packaging/flatpak/`, `src-tauri/`,
+`Cargo.lock`): the same build as in the release, without environment and
+secrets (no built-in Census service ID); the bundle is the artifact
+`flatpak`.
+
 ### Release workflow
 
 | Job | Runner | Result |
 |---|---|---|
-| `verify` | ubuntu-22.04 | tag = version (`check_versions.sh`), CHANGELOG section exists |
-| `linux` | ubuntu-22.04 | `ps2-tracker-x86_64-linux.tar.gz`, `ps2-tracker-x86_64.AppImage` (+ `.sig`) |
+| `verify` | ubuntu-24.04 | tag = version (`check_versions.sh`), CHANGELOG section exists; with *Run workflow* also creates the tag |
+| `linux` | ubuntu-22.04 (deliberately: glibc 2.35 for older systems) | `ps2-tracker-x86_64-linux.tar.gz`, `ps2-tracker-x86_64.AppImage` (+ `.sig`) |
 | `arch` | `archlinux:base-devel` container (digest pinned) | `ps2-tracker-x86_64.pkg.tar.zst` from the tarball, AUR `ps2-tracker-bin.PKGBUILD` / `.SRCINFO` |
 | `windows` | windows-latest | `ps2-tracker-x64-setup.exe` (NSIS, built natively, + `.sig`) |
-| `flatpak` | ubuntu-22.04 | `ps2-tracker.flatpak` (offline build from source; a failure does not stop the release) |
-| `release` | ubuntu-22.04 | `SHA256SUMS`, `latest.json` (only with signatures), provenance attestations, GitHub release with the CHANGELOG section as text |
+| `flatpak` | `flatpak.yml` (reusable): sources on ubuntu-24.04, build in Flathub's `gnome-51` container | `ps2-tracker.flatpak` (offline build from source; a failure does not stop the release) |
+| `release` | ubuntu-24.04 | `SHA256SUMS`, `latest.json` (only with signatures), provenance attestations, GitHub release with the CHANGELOG section as text |
 
 Hardening: `permissions: {}` at the top and minimal permissions per job (only
-`release` writes: `contents`, `id-token`, `attestations`), every action pinned
+`release` writes: `contents`, `id-token`, `attestations`; `verify` has
+`contents: write` for creating the tag with *Run workflow*), every action pinned
 to a commit SHA (Dependabot updates them, with a cooldown), checkout without
 persisted credentials, no caches in release builds, no `pull_request_target`;
 checked with `zizmor`. Downloads can be verified with
@@ -68,8 +86,8 @@ checked with `zizmor`. Downloads can be verified with
 
 ### Repository settings (maintainer)
 
-- **Environment `release`** (*Settings → Environments*): deployment rule “tags
-  `v*` only”. Only the build and release jobs use it, so pull request
+- **Environment `release`** (*Settings → Environments*): deployment rules
+  “tags `v*`” and, for *Run workflow*, branch `main`. Only the build and release jobs use it, so pull request
   workflows never see its secrets. Every value is optional; the release
   succeeds without them:
   - secret `CENSUS_DEFAULT_SERVICE_ID` – built-in Census service ID (without
@@ -84,7 +102,8 @@ checked with `zizmor`. Downloads can be verified with
 - *Settings → Security*: private vulnerability reporting on (see
   `SECURITY.md`), Dependabot alerts and security updates on.
 - Ruleset for `main` (CI required, no force pushes) and for tags `v*` (no
-  deletion, no update).
+  deletion, no update; if it also restricts creation, add “GitHub Actions” as
+  bypass actor for *Run workflow*).
 
 ### When a job of the release workflow fails
 
@@ -174,8 +193,16 @@ and `makepkg --printsrcinfo > .SRCINFO`. The workflows never push to the AUR.
 
 ## Flatpak
 
-`flatpak-builder` needs bubblewrap with user namespaces, which the
-GitHub-hosted `ubuntu-22.04` runner allows. The build is offline: the frontend
-(`dist/`) is built first, the crates come from `cargo-sources.json`
-(flatpak-cargo-generator, pinned commit and SHA-256). Flathub would need its
-own manifest repository there (a separate application).
+`.github/workflows/flatpak.yml` builds the bundle with Flathub's tooling: a
+first job on ubuntu-24.04 builds the frontend (`dist/`) and writes
+`cargo-sources.json` (`tools/flatpak_sources.sh`: flatpak-cargo-generator,
+pinned commit and SHA-256); the second job runs
+`flatpak/flatpak-github-actions/flatpak-builder` (pinned SHA) in the container
+`ghcr.io/flathub-infra/flatpak-github-actions:gnome-51` (pinned digest,
+`--privileged` for bubblewrap) with the GNOME 51 SDK, current
+`flatpak-builder`, `appstream-compose` and `appstreamcli`. The build is
+offline; no build cache. The optional built-in IDs go in only through a
+temporary `.cargo/config.toml` (`tools/flatpak_cargo_env.sh`), never through
+the manifest (flatpak-builder stores it in the bundle). Update the container
+digest together with the runtime version in the manifest. Flathub would need
+its own manifest repository there (a separate application).

@@ -1,9 +1,15 @@
-# Release for a tag vX.Y.Z: builds every package on GitHub-hosted runners and
-# creates the GitHub release with the CHANGELOG section as text, SHA256SUMS and
-# build provenance attestations.
+# Release: builds every package on GitHub-hosted runners and creates the GitHub
+# release with the CHANGELOG section as text, SHA256SUMS and build provenance
+# attestations. Two ways to start it:
+#   - push a tag vX.Y.Z (tools/release.sh), or
+#   - Actions -> Release -> Run workflow with input "version" (= version in
+#     Cargo.toml) on main: the first job creates the tag vX.Y.Z on that commit
+#     through the API. A tag created with GITHUB_TOKEN starts no new workflow,
+#     so the same run builds it. A tag ruleset may need "GitHub Actions" as
+#     bypass actor, and the environment "release" must allow main (see
+#     docs/release.md).
 #
-# Secrets only in the environment "release" (restrict it to tags v* in the
-# repository settings), never in pull request workflows:
+# Secrets only in the environment "release", never in pull request workflows:
 #   CENSUS_DEFAULT_SERVICE_ID          built-in Census service ID (optional)
 #   TAURI_SIGNING_PRIVATE_KEY(_PASSWORD) updater signatures (optional; without
 #                                       them no .sig and no latest.json)
@@ -13,47 +19,86 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release (X.Y.Z, must equal the version in Cargo.toml); creates the tag vX.Y.Z on the selected commit
+        required: true
+        type: string
 
 permissions: {}
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.version && format('v{0}', inputs.version) || github.ref_name }}
   cancel-in-progress: false
 
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
   NODE_VERSION: "26.13.1"
-  # flatpak-builder-tools: commit and SHA-256 of flatpak-cargo-generator.py
-  FCG_COMMIT: "9d86d336a39b9af38b86f114b6ce5820fe260f91"
-  FCG_SHA256: "0a2db6be87d75910facef28ab46d4d6460802e8419ab850d0caa6a364d26b380"
 
 jobs:
   verify:
-    name: Tag matches the version
-    runs-on: ubuntu-22.04
+    name: Version, tag and commit
+    runs-on: ubuntu-24.04
     permissions:
-      contents: read
+      contents: write # only used by "Run workflow": create the tag through the API
     outputs:
       version: ${{ steps.v.outputs.version }}
+      tag: ${{ steps.v.outputs.tag }}
+      sha: ${{ steps.v.outputs.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: check_versions (tag = v<version>)
-        env:
-          TAG: ${{ github.ref_name }}
-        run: bash tools/check_versions.sh "$TAG"
       - id: v
+        name: check_versions (tag = v<version>)
         env:
-          TAG: ${{ github.ref_name }}
+          EVENT: ${{ github.event_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          set -eu
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+              echo "::error::Run workflow only on main"; exit 1
+            fi
+            if ! [[ "$INPUT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::version must be X.Y.Z"; exit 1
+            fi
+            TAG="v${INPUT_VERSION}"
+          else
+            TAG="$REF_NAME"
+          fi
+          bash tools/check_versions.sh "$TAG"
           python3 -I tools/release_notes.py "${TAG#v}" CHANGELOG.md > /dev/null
+          {
+            echo "version=${TAG#v}"
+            echo "tag=${TAG}"
+            echo "sha=$(git rev-parse HEAD)"
+          } >> "$GITHUB_OUTPUT"
+      - name: Create the tag (Run workflow only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.v.outputs.tag }}
+          VERSION: ${{ steps.v.outputs.version }}
+          SHA: ${{ steps.v.outputs.sha }}
+        run: |
+          set -eu
+          # annotated tag object, then the ref; fails if the tag already exists
+          obj=$(gh api "repos/${GITHUB_REPOSITORY}/git/tags" \
+            -f tag="$TAG" -f message="PS2 Session Tracker ${VERSION}" \
+            -f object="$SHA" -f type=commit --jq .sha)
+          gh api "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/tags/${TAG}" -f sha="$obj" --silent
+          echo "created ${TAG} -> ${SHA}"
 
   linux:
     name: Linux (tarball, AppImage)
     needs: verify
+    # deliberately the oldest supported runner: the binary, the tarball and the
+    # AppImage link against its glibc (2.35) and then run on older systems too
     runs-on: ubuntu-22.04
     environment: release
     permissions:
@@ -61,6 +106,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.verify.outputs.sha }}
           persist-credentials: false
       - name: System packages
         run: |
@@ -109,8 +155,9 @@ jobs:
 
   arch:
     name: Arch package and AUR files
-    needs: linux
-    runs-on: ubuntu-22.04
+    needs: [verify, linux]
+    # host only; the build runs in the Arch container
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     container:
@@ -118,6 +165,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.verify.outputs.sha }}
           persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -125,7 +173,7 @@ jobs:
           path: dist-linux
       - name: makepkg
         env:
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ needs.verify.outputs.tag }}
         run: |
           V="${TAG#v}"
           useradd -m builder
@@ -161,6 +209,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.verify.outputs.sha }}
           persist-credentials: false
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -199,75 +248,17 @@ jobs:
   flatpak:
     name: Flatpak bundle
     needs: verify
-    runs-on: ubuntu-22.04
-    environment: release
-    # a failed Flatpak build does not stop the release (the bundle is missing then)
-    continue-on-error: true
+    # same workflow as the test build (flatpak.yml), here with the environment
+    # "release" and its Census service ID; a failure does not stop the release
+    # (see the condition of the release job), the bundle is missing then
+    uses: $/.github/workflows/flatpak.yml
     permissions:
       contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          # no caches in release builds (cache poisoning)
-          package-manager-cache: false
-      - name: Tools
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends \
-            flatpak flatpak-builder appstream desktop-file-utils \
-            python3-aiohttp python3-yaml python3-pip
-          # flatpak-cargo-generator needs tomlkit >= 0.11 (TOMLDocument.unwrap);
-          # Ubuntu 22.04 ships 0.9. Pinned wheel with hash, no other packages.
-          printf 'tomlkit==0.13.3 --hash=sha256:c89c649d79ee40629a9fda55f8ace8c6a1b42deb912b2a8fd8d942ddadb606b0\n' > /tmp/fcg-req.txt
-          python3 -m pip install --user --no-deps --require-hashes --only-binary=:all: -r /tmp/fcg-req.txt
-      - name: Frontend and crate sources
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm build
-          curl -fsSLo /tmp/fcg.py "https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/${FCG_COMMIT}/cargo/flatpak-cargo-generator.py"
-          echo "${FCG_SHA256}  /tmp/fcg.py" | sha256sum -c -
-          python3 /tmp/fcg.py Cargo.lock -o packaging/flatpak/cargo-sources.json
-          desktop-file-validate packaging/flatpak/dev.herz.Ps2Tracker.desktop
-      - name: flatpak-builder
-        env:
-          CENSUS_DEFAULT_SERVICE_ID: ${{ secrets.CENSUS_DEFAULT_SERVICE_ID }}
-          DISCORD_APP_ID: ${{ vars.DISCORD_APP_ID }}
-        run: |
-          . tools/ci_build_env.sh
-          # The sandbox does not see the job's environment. Cargo's [env] in a
-          # temporary project-level .cargo/config.toml (not in the repo, not an
-          # artefact) passes the values to rustc. Not via build-options env:
-          # flatpak-builder stores the manifest incl. env as /app/manifest.json.
-          mkdir -p .cargo
-          : > .cargo/config.toml
-          if [ -n "${PS2_DEFAULT_SERVICE_ID:-}" ] || [ -n "${PS2_DEFAULT_DISCORD_APP_ID:-}" ]; then
-            printf '[env]\n' >> .cargo/config.toml
-            [ -z "${PS2_DEFAULT_SERVICE_ID:-}" ] || printf 'PS2_DEFAULT_SERVICE_ID = "%s"\n' "$PS2_DEFAULT_SERVICE_ID" >> .cargo/config.toml
-            [ -z "${PS2_DEFAULT_DISCORD_APP_ID:-}" ] || printf 'PS2_DEFAULT_DISCORD_APP_ID = "%s"\n' "$PS2_DEFAULT_DISCORD_APP_ID" >> .cargo/config.toml
-          fi
-          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-          # MetaInfo check with a current AppStream: appstreamcli from Ubuntu
-          # 22.04 (0.15) does not know <developer> and url type vcs-browser
-          # and fails on valid files. org.flatpak.Builder ships a current one.
-          flatpak install --user -y --noninteractive flathub org.flatpak.Builder
-          flatpak run --command=appstreamcli org.flatpak.Builder \
-            validate --no-net --explain packaging/flatpak/dev.herz.Ps2Tracker.metainfo.xml
-          flatpak-builder --user --install-deps-from=flathub --disable-rofiles-fuse \
-            --force-clean --repo=flatpak-repo flatpak-build packaging/flatpak/dev.herz.Ps2Tracker.yml
-          rm -f .cargo/config.toml
-          mkdir -p out
-          flatpak build-bundle --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo \
-            flatpak-repo out/ps2-tracker.flatpak dev.herz.Ps2Tracker
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: flatpak
-          path: out/
-          if-no-files-found: error
+    with:
+      ref: ${{ needs.verify.outputs.sha }}
+      environment: release
+    secrets:
+      CENSUS_DEFAULT_SERVICE_ID: ${{ secrets.CENSUS_DEFAULT_SERVICE_ID }}
 
   release:
     name: GitHub release
@@ -275,7 +266,7 @@ jobs:
     if: >-
       !cancelled() && needs.verify.result == 'success' && needs.linux.result == 'success'
       && needs.arch.result == 'success' && needs.windows.result == 'success'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     environment: release
     permissions:
       contents: write # create the release and upload its files
@@ -284,15 +275,18 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.verify.outputs.sha }}
           persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: out
+          # only the release files, not the intermediate flatpak-sources
+          pattern: "{linux,arch,windows,flatpak}"
           merge-multiple: true
       - name: Checksums, updater manifest, release text
         env:
           VERSION: ${{ needs.verify.outputs.version }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ needs.verify.outputs.tag }}
           REPO: ${{ github.repository }}
         run: |
           cp THIRD-PARTY-NOTICES.md LICENSE-MIT LICENSE-APACHE out/
@@ -309,7 +303,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.verify.outputs.version }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ needs.verify.outputs.tag }}
         run: |
           gh release create "$TAG" --verify-tag --repo "$GITHUB_REPOSITORY" \
             --title "PS2 Session Tracker ${VERSION}" --notes-file release-notes.md out/*
