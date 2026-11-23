@@ -27,6 +27,9 @@ after [SemVer](https://semver.org/).
   (default 4 s): it only faded to opacity 0, and with a transparent window
   some compositors kept the last frame. The pack image and text are now
   removed after the fade, so the window is transparent again.
+- The log no longer fills with "mapping packet failed (buffer underrun)"
+  warnings from the Ogg decoder: some voice pack files end with an incomplete
+  Ogg page. The sound plays in full; the decoder now only logs errors.
 
 ## [1.0.4] – 2026-11-23
 

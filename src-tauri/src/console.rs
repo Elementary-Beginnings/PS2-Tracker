@@ -50,9 +50,9 @@ pub fn debug_wanted(args: &[String]) -> bool {
 /// Log filter: `RUST_LOG` wins; the debug mode logs the app at debug level.
 pub fn log_filter(debug: bool) -> &'static str {
     if debug {
-        "info,ps2_tracker=debug,ps2_tracker_core=debug,discord_rich_presence=error"
+        "info,ps2_tracker=debug,ps2_tracker_core=debug,discord_rich_presence=error,symphonia_format_ogg=error"
     } else {
-        "info,discord_rich_presence=error"
+        "info,discord_rich_presence=error,symphonia_format_ogg=error"
     }
 }
 
@@ -74,6 +74,7 @@ mod tests {
         assert!(debug_wanted(&["x".into(), "--debug-console".into()]));
         assert!(log_filter(true).contains("ps2_tracker=debug"));
         assert!(!log_filter(false).contains("debug"));
+        assert!(log_filter(false).contains("symphonia_format_ogg=error"));
     }
 
     #[test]
