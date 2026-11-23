@@ -19,6 +19,14 @@ after [SemVer](https://semver.org/).
 - New commands `resume_session`, `last_session` and `reopen_session`, allowed
   only for the main window.
 
+### Changed
+
+- Smoother pop-up animation: pack image and text slide and scale in together
+  (about 220 ms, ease-out) and fade out in 300 ms, animating only opacity and
+  transform; a pop-up that follows a visible one (kill chain) swaps the text
+  with a short pulse instead of fading out and in. With *prefers-reduced-motion*
+  only a fade is used. The display duration setting still applies.
+
 ### Fixed
 
 - The achievement/voice pack pop-up no longer stays on screen as a still

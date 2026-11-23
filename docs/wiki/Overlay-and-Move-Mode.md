@@ -12,7 +12,11 @@ game:
   a panel) –, size S/M/L/XL or automatic by monitor height;
 - two separately positioned objects: the stats overlay and the
   achievement/voice pack pop-up (the pack image unchanged with its alpha
-  channel, text with shadow, fade in/out, adjustable duration);
+  channel, text with shadow, adjustable duration; image and text slide and
+  scale in together and fade out, a pop-up that follows quickly replaces the
+  text with a short pulse instead of flickering, and with *reduce motion* set
+  in the system only a fade is used; the pop-up window is only mapped while a
+  pop-up shows);
 - optional block “Squad top 3”, see
   [Squad and Outfit Tracking](Squad-and-Outfit-Tracking);
 - position by anchor, offset and “Reset position” on the Overlay page, or

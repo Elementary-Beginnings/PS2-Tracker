@@ -58,19 +58,34 @@
     }
   }
 
+  /** Fade-out in ms; the backend hides the window shortly after it
+   *  (`overlay::POPUP_FADE_OUT_MS`). */
+  const FADE_OUT_MS = 300;
+  const reducedMotion = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
+  let frame = $state<HTMLDivElement>();
+
   function show(x: Toast) {
+    // a pop-up that replaces a visible one (kill chain): same element, new
+    // text and a short pulse instead of fading out and in again (no flicker)
+    const replacing = shown && painted;
     toast = x;
     shown = true;
     painted = true;
     clearTimeout(hideTimer);
     clearTimeout(clearTimer);
+    if (replacing && frame && !reducedMotion?.matches) {
+      frame.animate([{ transform: "scale(1.045)" }, { transform: "scale(1)" }], {
+        duration: 200,
+        easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+      });
+    }
     hideTimer = setTimeout(() => {
       shown = false;
-      // after the 0.25 s fade
+      // after the fade-out
       clearTimer = setTimeout(() => {
         painted = false;
         toast = null;
-      }, 300);
+      }, FADE_OUT_MS + 20);
     }, Math.max(800, o.popup_duration_ms ?? 4000));
   }
 
@@ -126,9 +141,11 @@
 >
   {#if useImage && bg}
     <div
+      bind:this={frame}
       class="img"
       class:pixel={scale > 1}
       class:on={visible}
+      class:anim={paint && !preview}
       style:width={`${(bg.width * scale) / dpr}px`}
       style:height={`${(bg.height * scale) / dpr}px`}
       style:background-image={paint ? `url(${bg.data_url})` : "none"}
@@ -139,7 +156,14 @@
       {/if}
     </div>
   {:else}
-    <div class="box style-{o.popup_style ?? 'plain'}" class:on={visible} class:paint style:--op={o.popup_opacity ?? 1}>
+    <div
+      bind:this={frame}
+      class="box style-{o.popup_style ?? 'plain'}"
+      class:on={visible}
+      class:paint
+      class:anim={paint && !preview}
+      style:--op={o.popup_opacity ?? 1}
+    >
       {#if content}<div class="txt"><strong>{content.title}</strong>{#if content.text}<span>{content.text}</span>{/if}</div>{/if}
     </div>
   {/if}
@@ -161,15 +185,40 @@
     color: #fff;
     font-family: "Inter", "Noto Sans", "Segoe UI", system-ui, sans-serif;
   }
+  /* Image and text sit in one element and move together. Only opacity and
+     transform change (composited, no layout). Out: 300 ms, accelerating;
+     in: 220 ms with a soft overshoot-free ease-out from slightly above and
+     smaller. */
   .img,
   .box {
     position: relative;
     opacity: 0;
-    transition: opacity 0.25s ease;
+    transform: translateY(-0.4em) scale(0.94);
+    transform-origin: 50% 40%;
+    transition:
+      opacity 300ms cubic-bezier(0.4, 0, 1, 1),
+      transform 300ms cubic-bezier(0.4, 0, 1, 1);
   }
   .img.on,
   .box.on {
     opacity: var(--op);
+    transform: none;
+    transition:
+      opacity 180ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  /* layer hint only while a pop-up is painted, not permanently */
+  .anim {
+    will-change: opacity, transform;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .img,
+    .box,
+    .img.on,
+    .box.on {
+      transform: none;
+      transition: opacity 200ms linear;
+    }
   }
   .img {
     background-size: 100% 100%;
