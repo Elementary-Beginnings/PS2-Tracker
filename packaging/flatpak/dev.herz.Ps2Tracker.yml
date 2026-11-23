@@ -27,7 +27,8 @@ finish-args:
   - --device=dri
   # sound: cpal/ALSA goes through the runtime's PulseAudio plugin to PipeWire
   - --socket=pulseaudio
-  # Census REST API, event stream (WebSocket), optional OBS endpoint on 127.0.0.1
+  # Census REST API, event stream (WebSocket), optional OBS endpoint on 127.0.0.1,
+  # optional online sync (stats.elme.games, sign-in redirect on 127.0.0.1)
   - --share=network
   # tray icon (libayatana-appindicator, StatusNotifierItem)
   - --talk-name=org.kde.StatusNotifierWatcher
@@ -36,6 +37,12 @@ finish-args:
   # of the runtime directory)
   - --filesystem=xdg-run/discord-ipc-0
   - --filesystem=xdg-run/discord-ipc-1
+  # optional online sync (off by default): the refresh token of the sign-in
+  # lives in the user's keyring through the freedesktop Secret Service API
+  # (GNOME Keyring, KWallet). Only used once online sync is switched on; the
+  # sign-in loopback listener (127.0.0.1) and the uploads use the network
+  # permission above.
+  - --talk-name=org.freedesktop.secrets
   # single instance (tauri-plugin-single-instance): D-Bus name from the Tauri
   # identifier, which is not under the Flatpak app ID prefix
   - --own-name=dev.herz.ps2tracker.SingleInstance

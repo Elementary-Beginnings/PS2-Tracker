@@ -7,7 +7,8 @@ State: version 1.0.0.
 
 **In short:** the app connects only to `census.daybreakgames.com` and
 `push.planetside2.com` – and, only after opt-in, to the update endpoint
-(GitHub releases) and locally to Discord –, sends no telemetry, reads only its
+(GitHub releases), to the ELME stats server (online sync) and locally to
+Discord –, sends no telemetry, reads only its
 own folders and the files you import (packs, crosshairs, sessions – always
 through the file dialog), writes exports only to the chosen place, writes the
 service ID only to `config.toml` (mode 0600) and never accesses the game. Under
@@ -15,19 +16,23 @@ X11/XWayland it reads window titles and classes to recognise the game window.
 
 ## Network
 
-**Hosts contacted** – two always, a third only after opt-in, all fixed in the code:
+**Hosts contacted** – two always, the others only after opt-in, all fixed in the code (the online sync address can be changed in the settings):
 
 | Host | Protocol | Purpose | Code |
 |---|---|---|---|
 | `census.daybreakgames.com` | HTTPS (REST) | character search, names of weapons/vehicles, lifetime values; the six official class icons (`/files/ps2/images/static/<id>.png`, once, then cached) | `crates/ps2-tracker-core/src/census.rs` (`CENSUS_BASE`, `static_image`), `class_icons.rs` |
 | `push.planetside2.com` | WSS (WebSocket) | events (kills, deaths, login …) of the own characters and the squad members | `crates/ps2-tracker-core/src/ess.rs` (`ESS_URL`) |
 | `github.com` (release downloads, redirected to GitHub's download host) | HTTPS | **only after opt-in** (“Check for updates on start”) or “Check now”: `latest.json` of the updater, after confirmation the signed file | `src-tauri/tauri.conf.json` (`plugins.updater.endpoints`), `src-tauri/src/update.rs` |
+| `stats.elme.games` | HTTPS | **only after opt-in** (*Settings → Online sync*) and sign-in: sign-in, token refresh, upload of finished sessions of the own characters (see [Online sync](#online-sync-optional)) | `crates/ps2-tracker-core/src/online_sync/` (`DEFAULT_API_BASE`, `api.rs`) |
+| `discord.com` | HTTPS, in the **browser** | only when you click *Sign in with Discord*: the tracker opens Discord's authorization page in the system browser; the app itself sends nothing to Discord | `online_sync/mod.rs` (`authorize_url`), `src-tauri/src/sync.rs` (`open_url`) |
 
 The app opens no other connections. There is **no telemetry, no update check, no
 analytics, no crash reports**:
 
-- The only HTTP client (`reqwest`) is created only in `census.rs`
-  (`CensusClient::with_base`). The only WebSocket is in `ess.rs`
+- HTTP clients (`reqwest`) are created only in `census.rs`
+  (`CensusClient::with_base`) and, for the optional online sync, in
+  `online_sync/api.rs` (`SyncApi::new`, its own client, used only while online
+  sync is on). The only WebSocket is in `ess.rs`
   (`tokio_tungstenite::connect_async`).
 - Tauri plugins: `dialog`, `global-shortcut`, `single-instance` and, since 0.2.0,
   `updater` (`src-tauri/Cargo.toml`, `src-tauri/src/main.rs`). Only the updater
@@ -105,6 +110,49 @@ sent to the user interface: the UI only learns the source
 (`service_id_source`: environment, config, builtin, example). An own ID can be
 entered at any time and takes precedence.
 
+## Online sync (optional)
+
+Off by default (`[online_sync] enabled = false`). Details for users:
+[Online Sync](Online-Sync). Code: `crates/ps2-tracker-core/src/online_sync/`,
+`src-tauri/src/sync.rs`.
+
+- **Nothing without opt-in:** while it is off the app makes no request to the
+  stats server and does not touch the keyring (`worker.rs`, `step` returns at
+  once; test `switched_off_means_no_request_and_no_queue`). The keyring is
+  contacted lazily (`secret.rs`, `KeyringSecret`).
+- **Sign-in:** Discord OAuth 2, authorization code with PKCE (S256), scope
+  `identify`, random `state` checked on the callback (`pkce.rs`, `loopback.rs`).
+  The system browser opens Discord (`sync.rs`, `open_url`: https only, no
+  shell). The redirect goes to a listener **only on 127.0.0.1**, first free
+  port of 47821/47822/47823, only during the sign-in (at most 5 minutes), for
+  exactly one `/callback` with the right `state`; other requests get an error
+  page and do not end the wait. The callback page is static HTML without script
+  (`no-referrer`, CSP `default-src 'none'`). Code, verifier and redirect URI go
+  to `POST /auth/discord` of the stats server; the app has no client secret.
+- **Tokens:** the refresh token (30 days, single use) only in the **system
+  keyring** (Secret Service on Linux, Credential Manager on Windows; crates
+  `keyring-core`, `zbus-secret-service-keyring-store`,
+  `windows-native-keyring-store`). No file fallback: without a keyring the
+  sign-in is refused (test `sign_in_not_linked_and_without_keyring`). The access
+  token (15 minutes) only in memory. Tokens print as `***` (`api.rs`, `Token`);
+  error texts carry the HTTP status and the server's error code, never a token
+  (test `errors_are_classified_without_secrets`). The client follows no
+  redirects, so the bearer token cannot be sent to another host.
+- **Sent:** the session file of finished sessions of the **own** characters
+  that the server lists for the account (`PUT /sessions/{character_id}/{started_at}`),
+  exactly as the JSON export writes it – including the names and IDs of other
+  players in the kill feed. Squad sessions are never queued or uploaded (test
+  `uploads_with_refresh_rotation_and_retry_on_401`). Also sent: the client name
+  and version at sign-in (`client`, shown on the server as "signed in from").
+- **Stored locally:** the upload queue in `tracker.sqlite3`, table
+  `sync_queue` (state, attempts, next attempt, last error; no tokens). Deleting
+  a session deletes its row.
+- **API address:** changeable, `https://` only (`http://localhost` only in debug
+  builds; `online_sync::api_base`). Each address has its own keyring entry.
+- **Deleting:** *Sign out* (`POST /auth/logout`, keyring entry deleted),
+  *Delete my online data…* (`DELETE /me`: account and all uploaded sessions on
+  the server).
+
 **Local OBS endpoint** (`src-tauri/src/obs.rs`): **off** by default (*Settings →
 Data & Privacy*). When switched on, it listens only on `127.0.0.1` (port 47823,
 configurable) and serves only the overlay page with its assets, `/api/snapshot`,
@@ -175,8 +223,8 @@ The app reads and writes only in its own folders
   plus weapon and vehicle names. These are public game data from the Census API;
   whoever passes a file on passes them on too. The service ID is in no export.
 - **Database migration:** at startup the app brings an older `tracker.sqlite3` to
-  schema version 2 (two columns and an index, in one transaction; `store.rs`,
-  `migrate`). No data is deleted.
+  the current schema version (4: columns, an index and the table `sync_queue` of
+  the online sync, in one transaction; `store.rs`, `migrate`). No data is deleted.
 - “Open folder” opens only one of the fixed app folders (`commands.rs`,
   `open_folder`: fixed list `config`/`data`/`voicepacks`/`crosshairs`/`logs`, no
   paths from the user interface) with `xdg-open` or Explorer.
@@ -286,7 +334,7 @@ Each window may call only the commands listed in `src-tauri/capabilities/*.json`
 
 | Window | Allowed |
 |---|---|
-| `main` | `core:event:default`, `core:window:default`, `core:webview:default` (read-only), dialogs `ask`/`open`/`save` and the app commands the main window calls (not `toast_background`, `crosshair_render_info`, `overlay_content_size` and the commands of the move layer); among them `hotkey_status` (hotkeys that could not be registered, read-only) and the session controls `start_session`, `stop_session`, `resume_session`, `last_session` and `reopen_session` (they take only a character ID, parsed as a number, and work on the app's own database; no file access). The other windows cannot start, end or resume sessions. A test (`commands.rs`, `every_command_is_declared_and_allowed`) checks both directions: every command is declared and allowed for a window, and every permission belongs to an existing command |
+| `main` | `core:event:default`, `core:window:default`, `core:webview:default` (read-only), dialogs `ask`/`open`/`save` and the app commands the main window calls (not `toast_background`, `crosshair_render_info`, `overlay_content_size` and the commands of the move layer); among them `hotkey_status` (hotkeys that could not be registered, read-only) and the session controls `start_session`, `stop_session`, `resume_session`, `last_session` and `reopen_session` (they take only a character ID, parsed as a number, and work on the app's own database; no file access); the online sync commands `sync_status`, `sync_login`, `sync_cancel_login`, `sync_logout`, `sync_delete_account`, `sync_upload_session` (a session ID), `sync_upload_existing` and `sync_open_privacy` (opens only the privacy page of the configured server). HTTP calls of the online sync run in the Rust backend, the CSP stays unchanged. The other windows cannot start, end or resume sessions. A test (`commands.rs`, `every_command_is_declared_and_allowed`) checks both directions: every command is declared and allowed for a window, and every permission belongs to an existing command |
 | `overlay` | events, `get_snapshot`, `get_config`, `toast_background`, `get_overlay_state`, `overlay_content_size` (reports the size of the content), `class_icons` (cached class icons, read-only) |
 | `popup` | events, `get_config`, `toast_background`, `get_overlay_state`, `overlay_content_size` |
 | `movelayer` | events, `get_config`, `get_snapshot`, `toast_background`, `get_overlay_state` (preview of the objects) and `move_layer_state`/`_set`/`_select`/`_end`/`_reset`/`_monitor` (end of a drag, bar) and `move_layer_activity` (pointer movement only resets the idle timer); positions are limited to the monitor in the backend |
@@ -311,6 +359,7 @@ Manifest: `packaging/flatpak/dev.herz.Ps2Tracker.yml`.
 | `--talk-name=org.kde.StatusNotifierWatcher` | tray icon | no tray |
 | `--own-name=dev.herz.ps2tracker.SingleInstance` | single instance over D-Bus | several instances |
 | `--filesystem=xdg-run/discord-ipc-0`, `…-1` | optional Discord Rich Presence (local socket) | no Rich Presence |
+| `--talk-name=org.freedesktop.secrets` | optional online sync: refresh token in the keyring (Secret Service) | no online sync sign-in |
 
 No access to the home directory or other files: imports go through the
 FileChooser portal (Cargo feature `dialog-portal`), “Open folder” through the
@@ -340,13 +389,15 @@ rules, no hooks; no root is needed at runtime. The AppImage installs nothing.
 
 ## What the app does not do
 
-- no telemetry, no advertising, no accounts; update check only after opt-in
+- no telemetry, no advertising, no accounts of its own; update check and online
+  sync (Discord sign-in) only after opt-in
 - no access to the game process, its memory or its files
 - no recording of keyboard, mouse, screen or microphone
 - no reading of files outside the own folders and the imports chosen by the user
 - no services, no autostart (unless you create the entry yourself), no root
 - no connections except to the two hosts named (and, when switched on, the update
-  endpoint, the local OBS endpoint on 127.0.0.1 and the local Discord IPC)
+  endpoint, the ELME stats server, the local OBS endpoint on 127.0.0.1 and the
+  local Discord IPC)
 
 ## Check it yourself
 
@@ -366,6 +417,9 @@ i.e. on Linux `~/.config/ps2-tracker`, `~/.local/share/ps2-tracker`,
 `~/.local/state/ps2-tracker`; in Flatpak `~/.var/app/dev.herz.Ps2Tracker`; on
 Windows `%APPDATA%\ps2-tracker` (uninstall first). Also remove an autostart entry
 you created yourself (`~/.config/autostart/ps2-tracker.desktop`), if any.
+If you used the online sync: *Delete my online data…* (or *Sign out*) first;
+otherwise the keyring entry (service `dev.herz.ps2tracker.online-sync`) stays in
+your keyring and the uploaded sessions on the server.
 
 ## Dependencies and supply chain
 

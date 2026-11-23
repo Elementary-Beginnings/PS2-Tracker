@@ -5,6 +5,32 @@ after [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Online sync** for ELME members (opt-in, off by default; *Settings →
+  Online sync*): finished sessions of your own characters are uploaded to the
+  ELME stats server (stats.elme.games) in the background. Sign-in with Discord
+  (authorization code with PKCE, loopback redirect on 127.0.0.1); the refresh
+  token is kept only in the system keyring (Secret Service on Linux, Credential
+  Manager on Windows) and the sign-in is refused when there is none. Only
+  characters the server lists as linked to your account are uploaded, squad
+  sessions never. Persistent upload queue with retries (30 s up to 1 h,
+  `Retry-After` on HTTP 429); *History* shows per session whether it is not
+  synced, queued, synced or failed (with the reason), with *Upload now* /
+  *Retry upload* in the detail view and *Upload existing sessions…* in the
+  settings. *Sign out* and *Delete my online data…* in the settings. Without
+  switching it on and signing in, the app makes no request to the stats server.
+  See the wiki page *Online Sync*.
+- Flatpak: permission `--talk-name=org.freedesktop.secrets` for the keyring of
+  the online sync.
+- Official builds can embed the Discord client ID of the stats server
+  (repository variable `SYNC_DISCORD_CLIENT_ID`).
+
+### Changed
+
+- Database schema 4: new table `sync_queue` (online sync); older databases are
+  migrated at start, no data is removed.
+
 ## [1.1.1] – 2026-11-23
 
 ### Added

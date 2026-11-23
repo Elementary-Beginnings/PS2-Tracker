@@ -28,6 +28,7 @@ Session stats, overlay, crosshair and voice packs for **PlanetSide 2** on Linux
 - [Squad and Outfit Tracking](Squad-and-Outfit-Tracking) – friends and outfit
   members, “Squad top 3”
 - [Discord Rich Presence](Discord-Rich-Presence)
+- [Online Sync](Online-Sync)
 - [Auto-Update](Auto-Update) – signed in-app updates (opt-in)
 - [Hotkeys](Hotkeys) – global hotkeys and command line
 

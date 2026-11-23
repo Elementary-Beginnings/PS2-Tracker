@@ -32,6 +32,7 @@ und die Oberfläche der App sind englisch.
 - **Voice-Packs**: offenes Format und Recursion-`.rtst_vpk` – [Voice Packs](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Voice-Packs)
 - **Squad und Outfit** mitverfolgen, „Squad top 3“ im Overlay – [Squad and Outfit Tracking](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Squad-and-Outfit-Tracking)
 - **Discord Rich Presence** (optional) – [Discord Rich Presence](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Discord-Rich-Presence)
+- **Online-Sync** für ELME-Mitglieder (Opt-in, standardmäßig aus): abgeschlossene Sessions zu stats.elme.games, Anmeldung mit Discord, Token im Schlüsselbund des Systems – [Online Sync](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Online-Sync)
 - **Signierte Updates in der App** (opt-in) – [Auto-Update](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Auto-Update)
 - **Globale Hotkeys** und Kommandozeile – [Hotkeys](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Hotkeys)
 - **Keine Telemetrie**; jede Verbindung und jeder Dateizugriff ist dokumentiert – [Permissions and Privacy](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Permissions-and-Privacy)
