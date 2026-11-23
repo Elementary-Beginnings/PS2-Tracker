@@ -5,6 +5,8 @@ after [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.0] – 2026-11-23
+
 ### Added
 
 - Resume a session after a logout or a game crash: after a logout the session
