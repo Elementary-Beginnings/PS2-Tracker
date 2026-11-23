@@ -30,6 +30,11 @@ after [SemVer](https://semver.org/).
   Scorecard and dependency review on pull requests (vulnerabilities from
   moderate up, no GPL/AGPL/LGPL dependencies).
 
+### Fixed
+
+- The Discord settings no longer claim that continent and server are never
+  shown; they appear once the running session knows them.
+
 ## [1.0.0] – 2026-11-22
 
 ### Added

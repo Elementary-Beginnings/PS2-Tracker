@@ -195,7 +195,7 @@ export const en = {
     showDuration: "Session time",
     showLocation: "Continent and server",
     discordQuiet:
-      "Updates at most every 15 seconds. If Discord is not running, the app retries quietly in the background. Continent and server are not shown: the session does not record them.",
+      "Updates at most every 15 seconds. If Discord is not running, the app retries quietly in the background. Continent and server appear only once the running session knows them.",
   },
   notices: {
     database_recovered: (file: string) =>
