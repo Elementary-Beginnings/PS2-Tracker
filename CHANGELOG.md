@@ -5,6 +5,8 @@ after [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.2] – 2026-11-23
+
 ### Fixed
 
 - Release workflow: the Flatpak MetaInfo is validated with the current
