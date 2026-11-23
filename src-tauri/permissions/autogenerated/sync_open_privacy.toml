@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-sync-open-privacy"
+description = "Enables the sync_open_privacy command without any pre-configured scope."
+commands.allow = ["sync_open_privacy"]
+
+[[permission]]
+identifier = "deny-sync-open-privacy"
+description = "Denies the sync_open_privacy command without any pre-configured scope."
+commands.deny = ["sync_open_privacy"]

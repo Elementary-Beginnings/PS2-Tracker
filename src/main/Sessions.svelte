@@ -3,7 +3,7 @@
   import { onMount } from "svelte";
   import { ask, save as saveDialog } from "@tauri-apps/plugin-dialog";
   import { api, errorText, inTauri, on } from "../lib/api";
-  import type { SessionSummary, Snapshot } from "../lib/types";
+  import type { SessionSummary, Snapshot, SyncEntry } from "../lib/types";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { dateTime, duration, num, pct } from "../lib/format";
   import SessionView from "./SessionView.svelte";
@@ -12,6 +12,8 @@
   let { notify }: { notify: (t: string, e?: boolean) => void } = $props();
 
   let list = $state<SessionSummary[]>([]);
+  /** Online sync is switched on (shows the column and the upload buttons). */
+  let syncOn = $state(false);
   let detail = $state<Snapshot | null>(null);
   let detailId = $state<number | null>(null);
 
@@ -23,6 +25,7 @@
     }
     try {
       list = await api.listSessions(200, 0);
+      syncOn = (await api.syncStatus()).enabled;
     } catch (e) {
       notify(errorText(e), true);
     }
@@ -30,9 +33,28 @@
 
   onMount(() => {
     load();
-    const un = on("sessions-changed", load);
-    return () => un.then((f) => f());
+    const un = [on("sessions-changed", load), on("sync-changed", load)];
+    return () => un.forEach((u) => u.then((f) => f()));
   });
+
+  const detailSync = $derived(detailId == null ? null : (list.find((s) => s.id === detailId)?.sync ?? null));
+  const detailOwn = $derived(detailId == null ? null : list.find((s) => s.id === detailId));
+
+  async function upload() {
+    if (detailId == null) return;
+    try {
+      await api.syncUploadSession(detailId);
+      notify(t.sessions.uploadQueued);
+    } catch (e) {
+      notify(errorText(e), true);
+    }
+  }
+
+  function syncTitle(e: SyncEntry): string {
+    if (e.state === "synced") return t.sessions.sync.syncedTitle(e.synced_at ? dateTime(e.synced_at) : "");
+    if (e.state === "failed") return t.sessions.sync.failedTitle(e.last_error);
+    return t.sessions.sync.queuedTitle(e.last_error);
+  }
 
   async function open(id: number) {
     try {
@@ -95,6 +117,9 @@
     <button onclick={() => exportAs("xlsx")} title={t.sessions.exportTitle}>{t.sessions.exportXlsx}</button>
     <button onclick={() => exportAs("json")} title={t.sessions.exportTitle}>{t.sessions.exportJson}</button>
     <button onclick={() => exportAs("csv")}>{t.sessions.exportCsv}</button>
+    {#if syncOn && detailOwn?.ended_at != null && detailSync?.state !== "queued"}
+      <button onclick={upload}>{detailSync?.state === "failed" ? t.sessions.retry : t.sessions.uploadNow}</button>
+    {/if}
     <button class="danger" onclick={remove}>{t.sessions.delete}</button>
   </div>
   <SessionView snap={detail} now={Math.floor(Date.now() / 1000)} />
@@ -113,6 +138,7 @@
           <tr>
             <th>{t.sessions.colStart}</th><th>{t.sessions.colCharacter}</th><th class="num">{t.sessions.colDuration}</th><th class="num">{t.sessions.colKills}</th><th class="num">{t.sessions.colDeaths}</th>
             <th class="num">{t.sessions.colKd}</th><th class="num">{t.sessions.colHsr}</th><th class="num">{t.sessions.colXp}</th>
+            {#if syncOn}<th>{t.sessions.colSync}</th>{/if}
           </tr>
         </thead>
         <tbody>
@@ -129,6 +155,11 @@
               <td class="num">{num(kd(s), 2)}</td>
               <td class="num">{s.kills ? pct(s.headshots / s.kills, 0) : "–"}</td>
               <td class="num">{num(s.xp)}</td>
+              {#if syncOn}
+                <td>
+                  {#if s.sync}<span class="badge sync-{s.sync.state}" title={syncTitle(s.sync)}>{t.sessions.sync[s.sync.state]}</span>{:else}<span class="muted" title={t.sessions.sync.none}>–</span>{/if}
+                </td>
+              {/if}
             </tr>
           {/each}
         </tbody>
@@ -157,5 +188,11 @@
   }
   .bar h1 {
     margin: 0;
+  }
+  .sync-failed {
+    color: var(--bad, #e5534b);
+  }
+  .sync-queued {
+    opacity: 0.8;
   }
 </style>

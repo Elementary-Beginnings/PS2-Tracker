@@ -75,22 +75,35 @@ impl SecretStore for MemorySecret {
 
 /// The platform keyring through `keyring-core`. `account` names the entry
 /// (one per API address, so a test server never overwrites the real login).
+/// The keyring is contacted on first use only (the Secret Service store
+/// connects to D-Bus when it is created), never while the sync is off. A
+/// failed connection is tried again on the next use (keyring started later).
 pub struct KeyringSecret {
-    store: Result<Arc<keyring_core::CredentialStore>, SecretError>,
+    store: Mutex<Option<Arc<keyring_core::CredentialStore>>>,
     account: String,
 }
 
 impl KeyringSecret {
     pub fn new(account: &str) -> Self {
         Self {
-            store: platform_store(),
+            store: Mutex::new(None),
             account: account.to_owned(),
         }
     }
 
     fn entry(&self) -> Result<keyring_core::Entry, SecretError> {
-        let store = self.store.as_ref().map_err(Clone::clone)?;
-        keyring_core::Entry::new_in_store(store, SERVICE, &self.account).map_err(map_err)
+        let store = {
+            let mut s = self.store.lock().unwrap_or_else(|e| e.into_inner());
+            match s.as_ref() {
+                Some(st) => st.clone(),
+                None => {
+                    let st = platform_store()?;
+                    *s = Some(st.clone());
+                    st
+                }
+            }
+        };
+        keyring_core::Entry::new_in_store(&store, SERVICE, &self.account).map_err(map_err)
     }
 }
 

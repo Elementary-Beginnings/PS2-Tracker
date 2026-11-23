@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-sync-upload-existing"
+description = "Enables the sync_upload_existing command without any pre-configured scope."
+commands.allow = ["sync_upload_existing"]
+
+[[permission]]
+identifier = "deny-sync-upload-existing"
+description = "Denies the sync_upload_existing command without any pre-configured scope."
+commands.deny = ["sync_upload_existing"]

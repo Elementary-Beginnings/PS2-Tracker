@@ -1118,6 +1118,38 @@ mod tests {
         assert!(!r.worker.status().account.unwrap().upload_allowed);
     }
 
+    /// The app spawns these futures on its multi-threaded runtime.
+    #[test]
+    fn futures_are_send() {
+        fn send<T: Send + 'static>(_: T) {}
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        rt.block_on(async {
+            let r = rig(
+                "https://example.invalid/api/v1",
+                MemorySecret::default(),
+                no_browser(),
+            );
+            send(r.worker.clone().run(t0));
+            let w = r.worker.clone();
+            send(async move { w.login(t0).await });
+            let w = r.worker.clone();
+            send(async move { w.logout().await });
+            let w = r.worker.clone();
+            send(async move { w.delete_account(T0).await });
+        });
+    }
+
+    /// The keyring is not touched before it is needed.
+    #[test]
+    fn keyring_is_contacted_lazily() {
+        // creating the entry must not connect (it would block and could
+        // prompt while the sync is off)
+        let _ = crate::online_sync::secret::KeyringSecret::new("test");
+    }
+
     #[tokio::test]
     async fn cancel_a_running_sign_in() {
         let srv = start(Arc::new(|_: &Request| Response::empty(500))).await;

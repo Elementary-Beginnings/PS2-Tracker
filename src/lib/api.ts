@@ -30,6 +30,7 @@ import type { GameStatus, WindowEntry, PackBackground,
   PathsInfo,
   SessionSummary,
   Snapshot,
+  SyncStatus,
   VoiceOverview,
   VoicePack,
 } from "./types";
@@ -120,6 +121,15 @@ export const api = {
   gameStatus: () => invoke<GameStatus>("game_status"),
   openFolder: (kind: string) => invoke<void>("open_folder", { kind }),
   toastBackground: () => invoke<PackBackground | null>("toast_background"),
+
+  syncStatus: () => invoke<SyncStatus>("sync_status"),
+  syncLogin: () => invoke<SyncStatus>("sync_login"),
+  syncCancelLogin: () => invoke<void>("sync_cancel_login"),
+  syncLogout: () => invoke<SyncStatus>("sync_logout"),
+  syncDeleteAccount: () => invoke<SyncStatus>("sync_delete_account"),
+  syncUploadSession: (id: number) => invoke<void>("sync_upload_session", { id }),
+  syncUploadExisting: () => invoke<number>("sync_upload_existing"),
+  syncOpenPrivacy: () => invoke<void>("sync_open_privacy"),
 };
 
 export function on<T>(event: string, cb: (payload: T) => void): Promise<UnlistenFn> {

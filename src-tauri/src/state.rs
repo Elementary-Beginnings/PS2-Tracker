@@ -98,6 +98,8 @@ pub struct AppState {
     /// (event name, JSON) for the OBS source
     pub obs_tx: broadcast::Sender<(String, String)>,
     pub obs_stop: Mutex<Option<watch::Sender<bool>>>,
+    /// Online sync to the ELME stats server (see `sync.rs`).
+    pub sync: Arc<ps2_tracker_core::online_sync::worker::SyncWorker>,
 }
 
 impl AppState {

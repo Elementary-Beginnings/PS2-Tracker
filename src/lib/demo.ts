@@ -70,6 +70,7 @@ export function demoConfig(p?: URLSearchParams): Config {
     squad: [],
     discord: { enabled: false, app_id: "", show_character: true, show_kd: true, show_kills: true, show_duration: true, show_location: false },
     updates: { check_on_start: false },
+    online_sync: { enabled: false, api_base: "https://stats.elme.games/api/v1", discord_client_id: "" },
     session: { idle_timeout_minutes: 30, resume_minutes: 15, streak_step: 5, killfeed_len: 12 },
     overlay: {
       anchor: "top-right",
