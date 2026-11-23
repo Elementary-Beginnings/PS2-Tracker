@@ -832,7 +832,7 @@ mod tests {
         let settings = SyncSettings {
             enabled: true,
             api_base: base.into(),
-            discord_client_id: "112233445566778899".into(),
+            discord_client_id: crate::online_sync::test_snowflake('7'),
         };
         let worker = SyncWorker::new(deps, settings, HashSet::from([ME]));
         worker.set_ports(vec![0]);

@@ -495,7 +495,7 @@ pub(crate) mod tests {
             "access_token": access, "access_expires_in": 900,
             "refresh_token": refresh, "refresh_expires_in": 2592000,
             "account": {
-                "discord_id": "123456789012345678",
+                "discord_id": crate::online_sync::test_snowflake('9'),
                 "characters": [{"character_id": "5428000000000000001", "name": "Me"}],
                 "upload_allowed": true, "membership_lost_at": null, "purge_at": null,
                 "created_at": 1795300000, "storage": {"sessions": 42, "bytes": 1834221}
@@ -543,7 +543,7 @@ pub(crate) mod tests {
             "201 = new"
         );
         let me = api.me(&Token::new("acc-1")).await.unwrap();
-        assert_eq!(me.discord_id, "123456789012345678");
+        assert_eq!(me.discord_id, crate::online_sync::test_snowflake('9'));
         api.delete_account(&Token::new("acc-1")).await.unwrap();
         let reqs = srv.requests();
         let ex: serde_json::Value = serde_json::from_str(&reqs[0].body).unwrap();
