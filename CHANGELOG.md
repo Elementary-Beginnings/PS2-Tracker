@@ -15,6 +15,12 @@ after [SemVer](https://semver.org/).
   signed AppImage/Windows setup files plus `latest.json`. Checking stays
   opt-in (off by default), installing needs a click.
 
+### Fixed
+
+- Release workflow: the Flatpak job installs a current `tomlkit` (pinned by
+  hash) for flatpak-cargo-generator, and release files are collected in
+  `out/` instead of the frontend build folder `dist/`.
+
 ### Changed
 
 - **The project moved to GitHub**
