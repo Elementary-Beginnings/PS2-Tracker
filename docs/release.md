@@ -200,8 +200,11 @@ pinned commit and SHA-256); the second job runs
 `flatpak/flatpak-github-actions/flatpak-builder` (pinned SHA) in the container
 `ghcr.io/flathub-infra/flatpak-github-actions:gnome-51` (pinned digest,
 `--privileged` for bubblewrap) with the GNOME 51 SDK, current
-`flatpak-builder`, `appstream-compose` and `appstreamcli`. The build is
-offline; no build cache. The optional built-in IDs go in only through a
+`flatpak-builder`, `appstream-compose` and `appstreamcli`. `/var/lib/flatpak`
+is an anonymous volume: the image's preinstalled SDK is copied there, so
+updating it to Flathub's newest build works (on the container's overlayfs
+the update fails with “Invalid cross-device link”). The build is offline; no
+build cache. The optional built-in IDs go in only through a
 temporary `.cargo/config.toml` (`tools/flatpak_cargo_env.sh`), never through
 the manifest (flatpak-builder stores it in the bundle). Update the container
 digest together with the runtime version in the manifest. Flathub would need

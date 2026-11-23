@@ -92,6 +92,16 @@ jobs:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51@sha256:78d969b18225ae107ca29497bf09c4a3f791e5f1838a9a912a529d0024fb6210
       # flatpak-builder needs bubblewrap with namespaces inside the container
       options: --privileged
+      # The image ships the GNOME SDK preinstalled in /var/lib/flatpak. When
+      # Flathub has a newer build, flatpak-builder (--install-deps-from)
+      # updates it, and deploying renames directories; on the container's
+      # overlayfs that fails with EXDEV ("Invalid cross-device link") for
+      # directories from the image layer. An anonymous volume puts
+      # /var/lib/flatpak on the host filesystem; Docker copies the image's
+      # preinstalled runtimes into the new volume, so nothing is downloaded
+      # twice when they are current.
+      volumes:
+        - /var/lib/flatpak
     defaults:
       run:
         shell: bash
