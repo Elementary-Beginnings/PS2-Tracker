@@ -276,6 +276,8 @@ pub struct Toast {
 /// Shows a toast in the overlay window and/or the OBS source.
 pub fn show_toast(app: &AppHandle, t: &Toast, overlay: bool, stream: bool) {
     if overlay {
+        // map the window first, then hand over the content
+        crate::windows::popup_started(app);
         let _ = app.emit_to(crate::windows::POPUP, "toast", t.clone());
     }
     if stream && let Ok(json) = serde_json::to_string(t) {

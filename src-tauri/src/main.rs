@@ -114,6 +114,7 @@ fn init_state() -> Result<AppState, Box<dyn std::error::Error>> {
         crosshair_last: AtomicU8::new(0),
         overlay_last: Default::default(),
         overlay_target: Default::default(),
+        popup_gate: Default::default(),
         overlay_corrections: Default::default(),
         overlay_selected: AtomicU8::new(0),
         x11_types: Mutex::new(HashMap::new()),

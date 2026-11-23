@@ -77,6 +77,18 @@ is kept.
 - **Windows:** use *Windowed Fullscreen* or *Borderless* in PlanetSide 2, see
   [Installation](Installation#windows-1011).
 
+## Pop-up stays on screen
+
+Up to 1.1.0 the achievement/voice pack pop-up could stay visible as a still
+image after it had faded out (seen with KDE Plasma/KWin, XWayland and the
+NVIDIA driver): the empty transparent window stayed mapped, and the
+compositor kept its last frame; every focus change to the game showed it
+again. Since 1.1.1 the pop-up window is only mapped while a pop-up shows and
+is hidden after its fade-out; the focus watcher no longer maps it in between.
+In the move mode (Ctrl+F2) the pop-up is still shown for positioning. If it
+still happens, the log line `popup placed … reason="pop-up start"` (debug
+mode) and the next `hidden: no pop-up active` help to narrow it down.
+
 ## Ctrl+F2 does nothing
 
 KWin binds Ctrl+F2 to “Switch to Desktop 2” by default. Free it or choose

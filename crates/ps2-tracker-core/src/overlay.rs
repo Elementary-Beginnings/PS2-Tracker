@@ -192,6 +192,58 @@ pub fn size_factor(size: &str, monitor_height: u32) -> f32 {
     }
 }
 
+/// Shortest display time of a pop-up (the UI uses the same floor).
+pub const POPUP_MIN_MS: u64 = 800;
+/// Fade-out of a pop-up in the UI (`src/popup/Popup.svelte`).
+pub const POPUP_FADE_OUT_MS: u64 = 300;
+/// Extra time before the window is hidden, so the fade-out is never cut off
+/// by a webview whose timers run a little late.
+pub const POPUP_HIDE_SLACK_MS: u64 = 250;
+
+/// Whether the native pop-up window should be mapped. It is shown only while
+/// a pop-up is on screen and hidden after its fade-out: an empty transparent
+/// window that stays mapped can keep its last painted frame on some
+/// compositors (WebKitGTK under KWin/XWayland), so the pack image stayed on
+/// screen. The focus watcher and every other re-apply ask this gate.
+#[derive(Debug, Default, Clone)]
+pub struct PopupGate {
+    /// Unix ms until the window may stay mapped (0 = no pop-up yet).
+    until_ms: u64,
+    /// Counts pop-ups; a hide scheduled for an older one is ignored.
+    generation: u64,
+}
+
+impl PopupGate {
+    /// A pop-up starts at `now_ms` and shows for `duration_ms` (at least
+    /// [`POPUP_MIN_MS`]). Returns its generation and the time at which the
+    /// window may be hidden again. A pop-up that replaces a running one
+    /// extends the time.
+    pub fn start(&mut self, now_ms: u64, duration_ms: u64) -> (u64, u64) {
+        self.generation += 1;
+        let until =
+            now_ms + duration_ms.max(POPUP_MIN_MS) + POPUP_FADE_OUT_MS + POPUP_HIDE_SLACK_MS;
+        self.until_ms = self.until_ms.max(until);
+        (self.generation, self.until_ms)
+    }
+
+    /// Is a pop-up on screen (or fading out) at `now_ms`?
+    pub fn active(&self, now_ms: u64) -> bool {
+        now_ms < self.until_ms
+    }
+
+    /// The hide scheduled for pop-up `generation` is due at `now_ms`: true if
+    /// the window should be hidden now (no newer pop-up, time is up).
+    pub fn expire(&self, generation: u64, now_ms: u64) -> bool {
+        generation == self.generation && !self.active(now_ms)
+    }
+}
+
+/// The pop-up window is mapped while a pop-up shows, or in the move mode
+/// (the move layer positions the objects).
+pub fn popup_window_wanted(active: bool, moving: bool) -> bool {
+    active || moving
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -293,5 +345,32 @@ mod tests {
             .map(|a| format!("{:?}", Anchor::parse(a)))
             .collect();
         assert_eq!(all.len(), Anchor::ALL.len());
+    }
+
+    #[test]
+    fn popup_window_only_while_a_popup_shows() {
+        let mut g = PopupGate::default();
+        assert!(!g.active(0), "no pop-up yet: window hidden");
+        assert!(!popup_window_wanted(g.active(0), false));
+        assert!(popup_window_wanted(false, true), "move mode shows it");
+        let (first, until) = g.start(1_000, 4_000);
+        assert_eq!(
+            until,
+            1_000 + 4_000 + POPUP_FADE_OUT_MS + POPUP_HIDE_SLACK_MS
+        );
+        assert!(g.active(2_000));
+        // a focus change during the pop-up keeps it; after it, it stays hidden
+        assert!(popup_window_wanted(g.active(until - 1), false));
+        assert!(!popup_window_wanted(g.active(until), false));
+        // a second pop-up (kill chain) extends; the first hide is ignored
+        let (second, until2) = g.start(3_000, 4_000);
+        assert!(until2 > until);
+        assert!(!g.expire(first, until));
+        assert!(!g.expire(second, until2 - 1));
+        assert!(g.expire(second, until2));
+        // the minimum display time applies
+        let mut g = PopupGate::default();
+        let (_, u) = g.start(0, 10);
+        assert_eq!(u, POPUP_MIN_MS + POPUP_FADE_OUT_MS + POPUP_HIDE_SLACK_MS);
     }
 }

@@ -21,6 +21,11 @@ after [SemVer](https://semver.org/).
 
 ### Fixed
 
+- The achievement/voice pack pop-up no longer stays on screen as a still
+  image (KDE Plasma/KWin over XWayland, NVIDIA): the pop-up window is now
+  hidden after the fade-out and only mapped again for the next pop-up; the
+  focus watcher no longer shows the empty window on every focus change to the
+  game. The move mode still shows the pop-up for positioning.
 - *End session* during the resume window and quitting the app while logged
   out end the session at the logout instead of counting the time logged out
   as playtime.

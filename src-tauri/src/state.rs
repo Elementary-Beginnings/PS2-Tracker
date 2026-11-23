@@ -80,6 +80,9 @@ pub struct AppState {
     /// Requested position per overlay object (for the position check).
     pub overlay_target: Mutex<HashMap<&'static str, (i32, i32)>>,
     pub overlay_corrections: Mutex<HashMap<&'static str, Vec<std::time::Instant>>>,
+    /// Pop-up window visibility: mapped only while a pop-up shows (see
+    /// `overlay::PopupGate`).
+    pub popup_gate: Mutex<ps2_tracker_core::overlay::PopupGate>,
     /// Object selected in the move mode (0 stats, 1 pop-up).
     pub overlay_selected: AtomicU8,
     /// X11 window type applied per window label (true = on-screen display).

@@ -13,6 +13,7 @@ use tauri::{
 
 use crate::engine::state;
 use crate::focus::FocusState;
+use crate::state::now_ms;
 use crate::x11;
 use ps2_tracker_core::config::OverlaySettings;
 
@@ -193,7 +194,9 @@ fn log_overlay(app: &AppHandle, obj: Obj, shown: bool, reason: &str, detail: &st
     let mut last = st.overlay_last.lock().unwrap_or_else(|e| e.into_inner());
     let line = format!("{}|{shown}|{detail}", obj.name());
     let slot = last.entry(obj.name()).or_default();
-    if *slot != line && reason != "move" {
+    // showing and hiding the pop-up window per notification is routine
+    let routine = reason == "move" || reason.starts_with("pop-up ");
+    if *slot != line && !routine {
         tracing::info!(
             object = obj.name(),
             shown,
@@ -205,6 +208,30 @@ fn log_overlay(app: &AppHandle, obj: Obj, shown: bool, reason: &str, detail: &st
         tracing::debug!(object = obj.name(), shown, reason, "{detail}");
     }
     *slot = line;
+}
+
+/// A pop-up starts: map the pop-up window now and hide it again once the
+/// pop-up has faded out, unless a newer one came in the meantime. Without
+/// this the empty transparent window stayed mapped, and on KWin/XWayland it
+/// could keep showing the last frame of the pack image.
+pub fn popup_started(app: &AppHandle) {
+    let st = state(app);
+    let duration = u64::from(st.cfg().overlay.popup_duration_ms);
+    let (generation, until) = lock(&st.popup_gate).start(now_ms(), duration);
+    if let Err(e) = apply_object(app, Obj::Popup, "pop-up start") {
+        tracing::warn!(error = %e, "pop-up window not shown");
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let wait = until.saturating_sub(now_ms());
+        tokio::time::sleep(std::time::Duration::from_millis(wait)).await;
+        let st = state(&app);
+        if lock(&st.popup_gate).expire(generation, now_ms())
+            && let Err(e) = apply_object(&app, Obj::Popup, "pop-up end")
+        {
+            tracing::warn!(error = %e, "pop-up window not hidden");
+        }
+    });
 }
 
 /// Shows both overlay objects at their anchors (always fully on the monitor)
@@ -226,6 +253,10 @@ pub fn apply_object(app: &AppHandle, obj: Obj, reason: &str) -> tauri::Result<()
         Some("hidden: overlay disabled")
     } else if obj == Obj::Popup && !o.show_toasts {
         Some("hidden: notifications off")
+    } else if obj == Obj::Popup
+        && !overlay::popup_window_wanted(lock(&st.popup_gate).active(now_ms()), moving)
+    {
+        Some("hidden: no pop-up active")
     } else if o.auto_hide && !moving && focus == FocusState::Other {
         Some("hidden: other window focused")
     } else {
