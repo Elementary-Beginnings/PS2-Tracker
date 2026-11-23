@@ -64,7 +64,7 @@ impl StoreError {
 }
 
 /// Current database schema (`PRAGMA user_version`).
-pub const SCHEMA_VERSION: i32 = 3;
+pub const SCHEMA_VERSION: i32 = 4;
 
 pub struct Store {
     conn: Mutex<Connection>,
@@ -93,6 +93,19 @@ CREATE TABLE IF NOT EXISTS name_cache (
     extra      INTEGER,
     updated_at INTEGER NOT NULL,
     PRIMARY KEY (kind, id)
+);
+-- online sync: upload queue, one row per queued/synced/failed session
+CREATE TABLE IF NOT EXISTS sync_queue (
+    session_id      INTEGER PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
+    state           TEXT    NOT NULL,
+    attempts        INTEGER NOT NULL DEFAULT 0,
+    next_attempt_at INTEGER NOT NULL DEFAULT 0,
+    last_error      TEXT,
+    synced_at       INTEGER,
+    -- raised on every (re)queue; a finished upload only writes its result
+    -- if no newer version of the session was queued meanwhile
+    generation      INTEGER NOT NULL DEFAULT 0,
+    updated_at      INTEGER NOT NULL
 );
 "#;
 
@@ -155,6 +168,7 @@ impl Store {
     /// 1 → 2: column `data_version`, faction column for the session list and an
     /// index for duplicate detection on import (character + start time).
     /// 2 → 3: columns `world_id` and `zone_id` (server and continent).
+    /// 3 → 4: table `sync_queue` (online sync; created by [`SCHEMA`]).
     fn migrate(conn: &Connection) -> Result<(), StoreError> {
         let version: i32 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
         if version >= SCHEMA_VERSION {
@@ -203,7 +217,7 @@ impl Store {
             .optional()?)
     }
 
-    fn conn(&self) -> std::sync::MutexGuard<'_, Connection> {
+    pub(crate) fn conn(&self) -> std::sync::MutexGuard<'_, Connection> {
         self.conn.lock().unwrap_or_else(|e| e.into_inner())
     }
 
@@ -308,19 +322,24 @@ impl Store {
     }
 
     /// Closes sessions that were still running at the last exit (crash, kill):
-    /// end = last event. Returns the count.
-    pub fn close_dangling(&self, config: SessionConfig) -> Result<usize, StoreError> {
+    /// end = last event. Returns their IDs and characters.
+    pub fn close_dangling(
+        &self,
+        config: SessionConfig,
+    ) -> Result<Vec<(i64, crate::events::CharacterId)>, StoreError> {
         let ids: Vec<i64> = {
             let c = self.conn();
             let mut st = c.prepare("SELECT id FROM sessions WHERE ended_at IS NULL")?;
             st.query_map([], |r| r.get(0))?.collect::<Result<_, _>>()?
         };
-        for id in &ids {
-            let mut s = self.load_session(*id, config)?;
+        let mut closed = Vec::with_capacity(ids.len());
+        for id in ids {
+            let mut s = self.load_session(id, config)?;
             s.end(s.last_event_at);
             self.save_session(&mut s)?;
+            closed.push((id, s.character_id));
         }
-        Ok(ids.len())
+        Ok(closed)
     }
 
     /// Deletes all stored sessions of one character (squad: "remove and delete
@@ -563,7 +582,10 @@ mod tests {
         assert_eq!(back.killfeed().count(), 1);
         let mut open = sample();
         st.save_session(&mut open).unwrap();
-        assert_eq!(st.close_dangling(SessionConfig::default()).unwrap(), 1);
+        assert_eq!(
+            st.close_dangling(SessionConfig::default()).unwrap(),
+            vec![(open.id.unwrap(), 1)]
+        );
         let l = st.list_sessions(10, 0).unwrap();
         assert!(l.iter().all(|x| x.ended_at.is_some()));
         assert_eq!(

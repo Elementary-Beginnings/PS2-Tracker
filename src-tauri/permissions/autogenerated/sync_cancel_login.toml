@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-sync-cancel-login"
+description = "Enables the sync_cancel_login command without any pre-configured scope."
+commands.allow = ["sync_cancel_login"]
+
+[[permission]]
+identifier = "deny-sync-cancel-login"
+description = "Denies the sync_cancel_login command without any pre-configured scope."
+commands.deny = ["sync_cancel_login"]

@@ -5,6 +5,8 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
 use ps2_tracker_core::census::CharacterInfo;
+use ps2_tracker_core::online_sync::queue::QueueEntry;
+use ps2_tracker_core::online_sync::worker::SyncStatus;
 use ps2_tracker_core::packloader::{self, PackFormat};
 use ps2_tracker_core::sessionfile;
 use ps2_tracker_core::store::{SessionSummary, export_csv, export_json};
@@ -87,6 +89,9 @@ pub async fn apply_config(app: &AppHandle, config: Config) -> R<()> {
     if old.obs != config.obs {
         obs::restart(&app);
     }
+    if old.online_sync != config.online_sync || old.characters != config.characters {
+        crate::sync::configure(&st);
+    }
     hotkeys::register(&app);
     windows::apply_overlay(&app, "config saved").map_err(e)?;
     windows::apply_crosshair(&app, "config saved").map_err(e)?;
@@ -113,9 +118,26 @@ pub fn get_snapshot(st: S<'_>) -> Option<SessionSnapshot> {
     current_snapshot(&st)
 }
 
+/// A row of the history: the summary plus its online sync state (`None` =
+/// not synced).
+#[derive(Serialize)]
+pub struct SessionRow {
+    #[serde(flatten)]
+    summary: SessionSummary,
+    sync: Option<QueueEntry>,
+}
+
 #[tauri::command]
-pub fn list_sessions(st: S<'_>, limit: u32, offset: u32) -> R<Vec<SessionSummary>> {
-    st.store.list_sessions(limit.min(500), offset).map_err(e)
+pub fn list_sessions(st: S<'_>, limit: u32, offset: u32) -> R<Vec<SessionRow>> {
+    let list = st.store.list_sessions(limit.min(500), offset).map_err(e)?;
+    let mut sync = st.store.sync_entries().unwrap_or_default();
+    Ok(list
+        .into_iter()
+        .map(|summary| SessionRow {
+            sync: sync.remove(&summary.id),
+            summary,
+        })
+        .collect())
 }
 
 #[tauri::command]
@@ -411,6 +433,7 @@ pub fn stop_session(app: AppHandle, st: S<'_>, character_id: String) -> R<()> {
         .stop(id, now())
         .ok_or("no running session")?;
     st.store.save_session(&mut s).map_err(e)?;
+    crate::sync::session_finished(&st, &s);
     {
         let mut v = lock(&st.voice);
         v.detectors.remove(&id);
@@ -1346,6 +1369,62 @@ pub fn game_windows(st: S<'_>) -> Vec<focus::WindowEntry> {
 pub fn game_status(st: S<'_>) -> focus::GameStatus {
     let m = focus::GameMatch::from_cfg(&st.cfg());
     focus::game_status(&m)
+}
+
+/// Settings → Online sync: switch, sign-in, account and queue.
+#[tauri::command]
+pub fn sync_status(st: S<'_>) -> SyncStatus {
+    st.sync.status()
+}
+
+/// Discord sign-in in the system browser (waits up to five minutes for the
+/// browser to come back to 127.0.0.1).
+#[tauri::command]
+pub async fn sync_login(st: S<'_>) -> R<SyncStatus> {
+    let worker = st.sync.clone();
+    worker.login(now).await
+}
+
+#[tauri::command]
+pub fn sync_cancel_login(st: S<'_>) {
+    st.sync.cancel_login();
+}
+
+#[tauri::command]
+pub async fn sync_logout(st: S<'_>) -> R<SyncStatus> {
+    let worker = st.sync.clone();
+    worker.logout().await
+}
+
+/// Deletes the account and every uploaded session on the stats server.
+#[tauri::command]
+pub async fn sync_delete_account(st: S<'_>) -> R<SyncStatus> {
+    let worker = st.sync.clone();
+    worker.delete_account(now()).await
+}
+
+/// "Upload now" / "Retry" for one session of an own character.
+#[tauri::command]
+pub fn sync_upload_session(st: S<'_>, id: i64) -> R<()> {
+    st.sync.upload_now(id, now())
+}
+
+/// "Upload existing sessions": queues older sessions of the linked own
+/// characters that were never uploaded.
+#[tauri::command]
+pub fn sync_upload_existing(st: S<'_>) -> R<usize> {
+    st.sync.upload_existing(now())
+}
+
+/// Opens the privacy policy of the configured stats server in the browser.
+#[tauri::command]
+pub fn sync_open_privacy(st: S<'_>) -> R<()> {
+    let url = st
+        .sync
+        .status()
+        .privacy_url
+        .ok_or("no privacy policy address")?;
+    crate::sync::open_url(&url)
 }
 
 #[cfg(test)]

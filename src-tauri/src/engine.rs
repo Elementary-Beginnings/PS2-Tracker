@@ -123,6 +123,8 @@ pub async fn sync_characters(app: &AppHandle) {
         }
     }
     lock(&st.tracker).set_characters(chars);
+    // character IDs may just have been looked up
+    crate::sync::configure(&st);
 }
 
 /// IDs of all enabled own and squad characters (sorted, unique).
@@ -496,6 +498,7 @@ pub fn process_outputs(
                 if let Err(e) = st.store.save_session(&mut s) {
                     tracing::warn!(error = %e, "session not saved");
                 }
+                crate::sync::session_finished(&st, &s);
                 let _ = app.emit("sessions-changed", ());
             }
         }
@@ -962,8 +965,11 @@ pub fn shutdown(app: &AppHandle) {
         .map(|s| s.character_id)
         .collect();
     for id in ids {
-        if let Some(mut s) = lock(&st.tracker).stop(id, now()) {
-            let _ = st.store.save_session(&mut s);
+        // queued only; uploaded after the next start
+        if let Some(mut s) = lock(&st.tracker).stop(id, now())
+            && st.store.save_session(&mut s).is_ok()
+        {
+            crate::sync::session_finished(&st, &s);
         }
     }
 }

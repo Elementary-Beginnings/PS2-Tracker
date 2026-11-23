@@ -108,6 +108,8 @@ export interface Config {
   squad: CharacterSettings[];
   discord: { enabled: boolean; app_id: string; show_character: boolean; show_kd: boolean; show_kills: boolean; show_duration: boolean; show_location: boolean };
   updates: { check_on_start: boolean };
+  /** Online sync to the ELME stats server (off by default). */
+  online_sync: { enabled: boolean; api_base: string; discord_client_id: string };
   session: { idle_timeout_minutes: number; resume_minutes: number; streak_step: number; killfeed_len: number };
   overlay: OverlaySettings;
   voice: VoiceSettings;
@@ -317,6 +319,43 @@ export interface SessionSummary {
   faction_id?: number | null;
   /** Seconds logged out within the resume window (not playtime). */
   paused_secs?: number;
+  /** Online sync state; null/missing = not synced. */
+  sync?: SyncEntry | null;
+}
+
+export type SyncState = "queued" | "synced" | "failed";
+
+export interface SyncEntry {
+  session_id: number;
+  state: SyncState;
+  attempts: number;
+  next_attempt_at: number;
+  last_error: string | null;
+  synced_at: number | null;
+}
+
+export interface SyncAccount {
+  discord_id: string;
+  characters: { character_id: string; name: string }[];
+  upload_allowed: boolean;
+  membership_lost_at: number | null;
+  purge_at: number | null;
+  storage: { sessions: number; bytes: number };
+}
+
+export interface SyncStatus {
+  enabled: boolean;
+  api_base: string;
+  privacy_url: string | null;
+  client_id_available: boolean;
+  keyring: "unknown" | "available" | "unavailable";
+  keyring_error: string | null;
+  signed_in: boolean;
+  login_pending: boolean;
+  account: SyncAccount | null;
+  last_error: string | null;
+  server_unavailable: boolean;
+  counts: { queued: number; failed: number; synced: number };
 }
 
 export interface EventLine {

@@ -16,6 +16,7 @@ pub mod ess;
 pub mod events;
 pub mod hitfx;
 pub mod nrbf;
+pub mod online_sync;
 pub mod overlay;
 pub mod packloader;
 pub mod pakdoc;

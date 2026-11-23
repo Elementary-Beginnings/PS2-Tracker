@@ -30,6 +30,7 @@ overlay and crosshair are separate windows.
 - **Voice packs**: open format and Recursion `.rtst_vpk` – [Voice Packs](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Voice-Packs)
 - **Squad and outfit** tracking with “Squad top 3” in the overlay – [Squad and Outfit Tracking](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Squad-and-Outfit-Tracking)
 - **Discord Rich Presence** (optional) – [Discord Rich Presence](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Discord-Rich-Presence)
+- **Online sync** for ELME members (opt-in, off by default): finished sessions to stats.elme.games, sign-in with Discord, token in the system keyring – [Online Sync](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Online-Sync)
 - **Signed in-app updates** (opt-in) – [Auto-Update](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Auto-Update)
 - **Global hotkeys** and command line – [Hotkeys](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Hotkeys)
 - **No telemetry**; every connection and file access is documented – [Permissions and Privacy](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Permissions-and-Privacy)

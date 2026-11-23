@@ -4,6 +4,7 @@
   import { api, errorText, inTauri } from "../lib/api";
   import type { Config, HotkeyFailure, PathsInfo, ServiceIdSource } from "../lib/types";
   import IntegrationsSettings from "./IntegrationsSettings.svelte";
+  import OnlineSyncSettings from "./OnlineSyncSettings.svelte";
   import { appInfo, infoLine, loadAppInfo, ISSUES_URL, WIKI_URL } from "../lib/appInfo";
 
   let {
@@ -18,7 +19,7 @@
     openWizard: () => void;
   } = $props();
 
-  type Tab = "general" | "appearance" | "privacy" | "integrations" | "advanced";
+  type Tab = "general" | "appearance" | "privacy" | "online" | "integrations" | "advanced";
   let tab = $state<Tab>((new URLSearchParams(location.search).get("tab") as Tab | null) ?? "general");
   let paths = $state<PathsInfo | null>(null);
   let sid = $state("");
@@ -64,6 +65,7 @@
     { id: "general", label: t.settings.tabGeneral },
     { id: "appearance", label: t.settings.tabAppearance },
     { id: "privacy", label: t.settings.tabPrivacy },
+    { id: "online", label: t.onlineSync.title },
     { id: "integrations", label: t.integrations.tab },
     { id: "advanced", label: t.settings.tabAdvanced },
   ];
@@ -149,6 +151,8 @@
     {/if}
     <p class="muted small">{t.app.name} · {t.app.tagline}</p>
   </section>
+{:else if tab === "online"}
+  <OnlineSyncSettings {config} {save} {notify} />
 {:else if tab === "integrations"}
   <IntegrationsSettings {config} {save} {notify} />
 {:else}

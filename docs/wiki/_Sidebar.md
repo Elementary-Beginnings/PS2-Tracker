@@ -15,6 +15,7 @@
 - [Voice Pack Format](Voice-Pack-Format)
 - [Squad and Outfit Tracking](Squad-and-Outfit-Tracking)
 - [Discord Rich Presence](Discord-Rich-Presence)
+- [Online Sync](Online-Sync)
 - [Auto-Update](Auto-Update)
 - [Hotkeys](Hotkeys)
 

@@ -3,7 +3,9 @@
 # check_embedded. Values are never printed (GitHub also masks secrets).
 #   CENSUS_DEFAULT_SERVICE_ID (secret) -> PS2_DEFAULT_SERVICE_ID
 #   DISCORD_APP_ID (variable, public)  -> PS2_DEFAULT_DISCORD_APP_ID
-unset PS2_DEFAULT_SERVICE_ID PS2_DEFAULT_DISCORD_APP_ID
+#   SYNC_DISCORD_CLIENT_ID (variable, public; Discord application of the
+#     ELME stats server for the online sync) -> PS2_SYNC_DISCORD_CLIENT_ID
+unset PS2_DEFAULT_SERVICE_ID PS2_DEFAULT_DISCORD_APP_ID PS2_SYNC_DISCORD_CLIENT_ID
 if [ -n "${CENSUS_DEFAULT_SERVICE_ID:-}" ]; then
   case "$CENSUS_DEFAULT_SERVICE_ID" in
     *[!A-Za-z0-9_]*) echo "CENSUS_DEFAULT_SERVICE_ID has invalid characters - ignored, build uses example" ;;
@@ -21,6 +23,16 @@ if [ -n "${DISCORD_APP_ID:-}" ]; then
   fi
 else
   echo "built-in Discord application: not set"
+fi
+if [ -n "${SYNC_DISCORD_CLIENT_ID:-}" ]; then
+  if [[ "$SYNC_DISCORD_CLIENT_ID" =~ ^[0-9]{17,20}$ ]]; then
+    export PS2_SYNC_DISCORD_CLIENT_ID="$SYNC_DISCORD_CLIENT_ID"
+    echo "online sync Discord client ID: set"
+  else
+    echo "SYNC_DISCORD_CLIENT_ID is not 17-20 digits - ignored"
+  fi
+else
+  echo "online sync Discord client ID: not set (sign-in only with an own client ID)"
 fi
 
 # check_embedded <binary>: the built-in service ID is in the binary (proof

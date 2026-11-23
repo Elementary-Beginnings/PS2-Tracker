@@ -13,7 +13,9 @@
 #   CENSUS_DEFAULT_SERVICE_ID          built-in Census service ID (optional)
 #   TAURI_SIGNING_PRIVATE_KEY(_PASSWORD) updater signatures (optional; without
 #                                       them no .sig and no latest.json)
-# Variable (optional): DISCORD_APP_ID – built-in Discord application (public).
+# Variables (optional, public): DISCORD_APP_ID – built-in Discord application
+# (Rich Presence); SYNC_DISCORD_CLIENT_ID – Discord application of the ELME
+# stats server (online sync sign-in).
 name: Release
 
 on:
@@ -128,6 +130,7 @@ jobs:
         env:
           CENSUS_DEFAULT_SERVICE_ID: ${{ secrets.CENSUS_DEFAULT_SERVICE_ID }}
           DISCORD_APP_ID: ${{ vars.DISCORD_APP_ID }}
+          SYNC_DISCORD_CLIENT_ID: ${{ vars.SYNC_DISCORD_CLIENT_ID }}
         run: |
           . tools/ci_build_env.sh
           pnpm tauri build --no-bundle
@@ -225,6 +228,7 @@ jobs:
         env:
           CENSUS_DEFAULT_SERVICE_ID: ${{ secrets.CENSUS_DEFAULT_SERVICE_ID }}
           DISCORD_APP_ID: ${{ vars.DISCORD_APP_ID }}
+          SYNC_DISCORD_CLIENT_ID: ${{ vars.SYNC_DISCORD_CLIENT_ID }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |

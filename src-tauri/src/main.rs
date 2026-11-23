@@ -16,6 +16,7 @@ mod focus;
 mod hotkeys;
 mod obs;
 mod state;
+mod sync;
 mod tray;
 mod update;
 mod win_console;
@@ -68,13 +69,26 @@ fn init_state() -> Result<AppState, Box<dyn std::error::Error>> {
             detail: aside.display().to_string(),
         });
     }
-    match store.close_dangling(config.session.session_config()) {
-        Ok(n) if n > 0 => tracing::info!(n, "closed sessions left open by the last run"),
-        Err(e) => tracing::warn!(error = %e, "open sessions not closed"),
-        _ => {}
-    }
+    let closed = match store.close_dangling(config.session.session_config()) {
+        Ok(c) => {
+            if !c.is_empty() {
+                tracing::info!(n = c.len(), "closed sessions left open by the last run");
+            }
+            c
+        }
+        Err(e) => {
+            tracing::warn!(error = %e, "open sessions not closed");
+            Vec::new()
+        }
+    };
     let mut names = NameCache::default();
     store.load_names(&mut names)?;
+    let names = Arc::new(Mutex::new(names));
+    // online sync: does nothing (no request, no keyring) while switched off
+    let sync = sync::create(store.clone(), names.clone(), &config);
+    for (id, character_id) in closed {
+        sync.session_finished(id, character_id, now);
+    }
     let mut tracker = Tracker::new(
         config.session.session_config(),
         i64::from(config.session.idle_timeout_minutes.max(1)) * 60,
@@ -94,7 +108,8 @@ fn init_state() -> Result<AppState, Box<dyn std::error::Error>> {
     Ok(AppState {
         paths,
         store,
-        names: Arc::new(Mutex::new(names)),
+        names,
+        sync,
         item_categories: Mutex::new(HashMap::new()),
         category_names: Mutex::new(HashMap::new()),
         tracker: Mutex::new(tracker),
@@ -511,6 +526,14 @@ fn main() {
             commands::update_install,
             commands::crosshair_toggle,
             commands::focus_probe,
+            commands::sync_status,
+            commands::sync_login,
+            commands::sync_cancel_login,
+            commands::sync_logout,
+            commands::sync_delete_account,
+            commands::sync_upload_session,
+            commands::sync_upload_existing,
+            commands::sync_open_privacy,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -548,6 +571,7 @@ fn main() {
                 hotkeys::run(&handle, a, "cli");
             }
             engine::spawn_ticker(&handle);
+            sync::start(&handle, &state);
             focus::spawn_watcher(&handle);
             discord::spawn(&handle);
             update::check_on_start(&handle, state.cfg().updates.check_on_start);
