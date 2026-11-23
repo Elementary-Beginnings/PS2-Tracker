@@ -14,7 +14,8 @@ three steps:
 3. **Ready** – optionally import a voice pack or pick a crosshair.
 
 From then on a **session starts automatically** when you log in or with your
-first kill or death, and ends at logout or after inactivity. The live page
+first kill or death, and ends at logout or after inactivity. If you log back
+in within 15 minutes (e.g. after a game crash), the same session goes on. The live page
 shows the running session; finished sessions are in *History* (see
 [Sessions, Analytics and Export](Sessions-Analytics-and-Export)).
 

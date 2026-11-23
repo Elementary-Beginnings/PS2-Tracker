@@ -338,7 +338,10 @@ pub fn to_xlsx(file: &SessionFile, local: &NameCache) -> Result<Vec<u8>, FileErr
     let txt = Format::new();
     let s = &a.stats;
     let r = &a.rates;
-    let dur = (a.ended_at.unwrap_or(file.session.last_event_at) - a.started_at).max(0);
+    let dur = (a.ended_at.unwrap_or(file.session.last_event_at)
+        - a.started_at
+        - file.session.paused_secs)
+        .max(0);
     let summary: Vec<(&str, Cell, &Format)> = vec![
         ("Character", Cell::Text(a.character_name.clone()), &txt),
         ("Faction", Cell::Text(team_name(a.faction_id)), &txt),

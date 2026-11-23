@@ -760,6 +760,7 @@ export const en = {
     } as Record<"environment" | "config" | "builtin" | "example", string>,
     sessions: "Sessions",
     idle: "End after inactivity (min)",
+    resume: "Resume after logout/crash within (min, 0 = off)",
     streakStep: "Streak milestone every",
     feedLen: "Kill feed length",
     appearance: "Appearance",

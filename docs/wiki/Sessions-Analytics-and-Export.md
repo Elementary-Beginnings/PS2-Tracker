@@ -31,7 +31,11 @@
 - **Comparison with lifetime values** (`characters_stat_history`,
   `characters_weapon_stat_by_faction`), also per weapon.
 - **Several characters** (e.g. one per faction); automatic start at login or
-  the first event, end at logout or after inactivity.
+  the first event, end at logout or after inactivity. After a logout (or a
+  game crash, when the server logs the character out) the session waits
+  15 minutes by default for a relogin and then simply goes on; the time
+  logged out does not count as playtime. *Settings → Sessions → Resume after
+  logout/crash* sets the window (0 = a logout ends the session at once).
 - **Achievements** as an own TOML rule set (multikill, streak, headshot series,
   revenge, vehicle kills …); own rules in `achievements.toml`
   (see [Getting Started](Getting-Started#configuration-and-data)).

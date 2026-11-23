@@ -5,6 +5,13 @@ after [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Resume a session after a logout or a game crash: after a logout the session
+  waits for a relogin (default 15 minutes, *Settings → Sessions*, 0 = off) and
+  then goes on instead of starting a new one. The time logged out does not
+  count as playtime; if the window runs out, the session ends at the logout.
+
 ## [1.0.4] – 2026-11-23
 
 ### Security

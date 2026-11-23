@@ -68,7 +68,7 @@ export function demoConfig(p?: URLSearchParams): Config {
     squad: [],
     discord: { enabled: false, app_id: "", show_character: true, show_kd: true, show_kills: true, show_duration: true, show_location: false },
     updates: { check_on_start: false },
-    session: { idle_timeout_minutes: 30, streak_step: 5, killfeed_len: 12 },
+    session: { idle_timeout_minutes: 30, resume_minutes: 15, streak_step: 5, killfeed_len: 12 },
     overlay: {
       anchor: "top-right",
       show_kd_revived: false,

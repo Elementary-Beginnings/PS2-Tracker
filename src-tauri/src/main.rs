@@ -75,11 +75,12 @@ fn init_state() -> Result<AppState, Box<dyn std::error::Error>> {
     }
     let mut names = NameCache::default();
     store.load_names(&mut names)?;
-    let tracker = Tracker::new(
+    let mut tracker = Tracker::new(
         config.session.session_config(),
         i64::from(config.session.idle_timeout_minutes.max(1)) * 60,
         ps2_tracker_core::RuleSet::default_rules(),
     );
+    tracker.set_resume_grace(i64::from(config.session.resume_minutes) * 60);
     let sid = config.census.resolve()?;
     tracing::info!(source = sid.source().as_str(), "Census service ID");
     let census = CensusClient::new(sid.expose())?;

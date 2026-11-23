@@ -67,6 +67,9 @@ pub async fn apply_config(app: &AppHandle, config: Config) -> R<()> {
             config.voice.max_concurrent,
         );
     }
+    if old.session.resume_minutes != config.session.resume_minutes {
+        lock(&st.tracker).set_resume_grace(i64::from(config.session.resume_minutes) * 60);
+    }
     if old.voice.active_packs != config.voice.active_packs {
         engine::reload_voice_packs(&st);
     }

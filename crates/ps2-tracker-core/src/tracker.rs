@@ -23,6 +23,10 @@ pub enum TrackerOutput {
         unlocked: Unlocked,
     },
     SessionEnded(Box<Session>),
+    /// Logout with a resume window: the session waits for a relogin.
+    SessionPaused(CharacterId),
+    /// Relogin within the window: the same session goes on.
+    SessionResumed(CharacterId),
 }
 
 #[derive(Debug, Clone)]
@@ -37,6 +41,9 @@ pub struct TrackedCharacter {
 pub struct Tracker {
     config: SessionConfig,
     idle_timeout_secs: i64,
+    /// After a logout the session waits this long for a relogin (crash,
+    /// disconnect) before it ends; 0 = end at once.
+    resume_grace_secs: i64,
     rules: RuleSet,
     characters: HashMap<CharacterId, TrackedCharacter>,
     active: HashMap<CharacterId, (Session, AchievementEngine)>,
@@ -65,6 +72,7 @@ impl Tracker {
         Self {
             config,
             idle_timeout_secs,
+            resume_grace_secs: 0,
             rules,
             characters: HashMap::new(),
             active: HashMap::new(),
@@ -96,6 +104,11 @@ impl Tracker {
     /// Tracked character (name, faction, own).
     pub fn character(&self, id: CharacterId) -> Option<&TrackedCharacter> {
         self.characters.get(&id)
+    }
+
+    /// Resume window after a logout in seconds (0 = off).
+    pub fn set_resume_grace(&mut self, secs: i64) {
+        self.resume_grace_secs = secs.max(0);
     }
 
     pub fn set_rules(&mut self, rules: RuleSet) {
@@ -179,6 +192,11 @@ impl Tracker {
             let Some((s, engine)) = self.active.get_mut(&id) else {
                 continue;
             };
+            // any event of the character after a logout = back in time
+            if s.is_paused() && !is_logout {
+                s.resume(ts);
+                out.push(TrackerOutput::SessionResumed(id));
+            }
             let prev_killer = s.last_killer;
             let outcomes = s.apply(ev);
             if !outcomes.is_empty() && self.characters.get(&id).is_some_and(|c| c.own) {
@@ -199,27 +217,37 @@ impl Tracker {
                     unlocked: u,
                 });
             }
-            if is_logout && let Some(s) = self.stop(id, ts) {
-                out.push(TrackerOutput::SessionEnded(Box::new(s)));
+            if is_logout {
+                if self.resume_grace_secs > 0 {
+                    if let Some((s, _)) = self.active.get_mut(&id)
+                        && !s.is_paused()
+                    {
+                        s.pause(ts);
+                        out.push(TrackerOutput::SessionPaused(id));
+                    }
+                } else if let Some(s) = self.stop(id, ts) {
+                    out.push(TrackerOutput::SessionEnded(Box::new(s)));
+                }
             }
         }
         out
     }
 
-    /// Ends sessions without an event for `idle_timeout_secs`.
+    /// Ends sessions without an event for `idle_timeout_secs`, and paused
+    /// sessions whose resume window has run out (end = time of the logout).
     pub fn tick(&mut self, now: i64) -> Vec<TrackerOutput> {
-        let stale: Vec<CharacterId> = self
+        let stale: Vec<(CharacterId, i64)> = self
             .active
             .iter()
-            .filter(|(_, (s, _))| now - s.last_event_at > self.idle_timeout_secs)
-            .map(|(id, _)| *id)
+            .filter_map(|(id, (s, _))| match s.paused_at {
+                Some(p) => (now - p > self.resume_grace_secs).then_some((*id, p)),
+                None => (now - s.last_event_at > self.idle_timeout_secs)
+                    .then_some((*id, s.last_event_at)),
+            })
             .collect();
         stale
             .into_iter()
-            .filter_map(|id| {
-                let last = self.active.get(&id)?.0.last_event_at;
-                self.stop(id, last)
-            })
+            .filter_map(|(id, at)| self.stop(id, at))
             .map(|s| TrackerOutput::SessionEnded(Box::new(s)))
             .collect()
     }
@@ -817,6 +845,79 @@ mod tests {
 
     fn names_of(v: &[SquadTopRow]) -> Vec<String> {
         v.iter().map(|r| r.name.clone()).collect()
+    }
+
+    fn session_event(login: bool, ts: i64) -> GameEvent {
+        let p = PlayerSession {
+            timestamp: ts,
+            world_id: 10,
+            character_id: ME,
+        };
+        if login {
+            GameEvent::PlayerLogin(p)
+        } else {
+            GameEvent::PlayerLogout(p)
+        }
+    }
+
+    #[test]
+    fn relogin_within_window_resumes_the_session() {
+        let mut t = tracker();
+        t.set_resume_grace(600);
+        t.handle(&session_event(true, 100));
+        t.handle(&kill(110));
+        let o = t.handle(&session_event(false, 200));
+        assert!(o.contains(&TrackerOutput::SessionPaused(ME)));
+        assert!(
+            !o.iter()
+                .any(|x| matches!(x, TrackerOutput::SessionEnded(_)))
+        );
+        // window still open: nothing ends, the clock stands still
+        assert!(t.tick(500).is_empty());
+        assert_eq!(t.session(ME).unwrap().rates(500).duration_secs, 100);
+        let o = t.handle(&session_event(true, 400));
+        assert_eq!(o[0], TrackerOutput::SessionResumed(ME));
+        assert!(
+            !o.iter()
+                .any(|x| matches!(x, TrackerOutput::SessionStarted(_)))
+        );
+        t.handle(&kill(410));
+        let s = t.session(ME).unwrap();
+        assert_eq!(s.stats.kills, 2);
+        assert_eq!(s.paused_secs, 200);
+        // 100 s before the logout + 50 s after the relogin
+        assert_eq!(s.rates(450).duration_secs, 150);
+    }
+
+    #[test]
+    fn window_runs_out_session_ends_at_logout() {
+        let mut t = tracker();
+        t.set_resume_grace(600);
+        t.handle(&session_event(true, 100));
+        t.handle(&kill(110));
+        t.handle(&session_event(false, 200));
+        let o = t.tick(801);
+        let Some(TrackerOutput::SessionEnded(s)) = o.last() else {
+            panic!("session not ended: {o:?}")
+        };
+        assert_eq!(s.ended_at, Some(200));
+        assert!(!s.is_paused());
+        // a later login starts a new session
+        let o = t.handle(&session_event(true, 900));
+        assert_eq!(o[0], TrackerOutput::SessionStarted(ME));
+    }
+
+    #[test]
+    fn crash_without_logout_event_also_resumes() {
+        // game crash: the server logs the character out later, then relogin
+        let mut t = tracker();
+        t.set_resume_grace(900);
+        t.handle(&session_event(true, 100));
+        t.handle(&kill(150));
+        t.handle(&session_event(false, 400));
+        let o = t.handle(&kill(1000));
+        assert!(o.contains(&TrackerOutput::SessionResumed(ME)));
+        assert_eq!(t.session(ME).unwrap().stats.kills, 2);
     }
 
     #[test]

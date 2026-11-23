@@ -237,6 +237,14 @@ pub struct Session {
     /// Last own loadout seen in an event (class, data version 4).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub loadout_id: Option<u32>,
+    /// Logged out, waiting for a relogin within the resume window: time of
+    /// the logout. The session continues if the character comes back in time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub paused_at: Option<i64>,
+    /// Seconds spent logged out between logout and relogin (not counted as
+    /// playtime in the rates).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub paused_secs: i64,
     #[serde(skip)]
     killfeed: VecDeque<FeedEntry>,
     #[serde(skip, default)]
@@ -288,6 +296,8 @@ impl Session {
             world_id: None,
             zone_id: None,
             loadout_id: None,
+            paused_at: None,
+            paused_secs: 0,
             killfeed: VecDeque::new(),
             config,
         }
@@ -312,11 +322,34 @@ impl Session {
 
     pub fn end(&mut self, at: i64) {
         self.ended_at = Some(at.max(self.started_at));
+        self.paused_at = None;
+    }
+
+    /// Logout with a resume window: the clock stops at `at`.
+    pub fn pause(&mut self, at: i64) {
+        if self.paused_at.is_none() {
+            self.paused_at = Some(at.max(self.started_at));
+        }
+    }
+
+    /// Relogin within the window: the time logged out is not playtime.
+    pub fn resume(&mut self, at: i64) {
+        if let Some(p) = self.paused_at.take() {
+            self.paused_secs += (at - p).max(0);
+        }
+    }
+
+    pub fn is_paused(&self) -> bool {
+        self.paused_at.is_some()
     }
 
     pub fn rates(&self, now: i64) -> Rates {
-        let end = self.ended_at.unwrap_or(now).max(self.started_at);
-        let duration_secs = end - self.started_at;
+        let end = self
+            .ended_at
+            .or(self.paused_at)
+            .unwrap_or(now)
+            .max(self.started_at);
+        let duration_secs = (end - self.started_at - self.paused_secs).max(0);
         let s = &self.stats;
         let minutes = duration_secs as f64 / 60.0;
         Rates {
@@ -580,6 +613,10 @@ impl Session {
 
 fn ratio(a: f64, b: f64) -> f64 {
     if b > 0.0 { a / b } else { a }
+}
+
+fn is_zero(v: &i64) -> bool {
+    *v == 0
 }
 
 #[cfg(test)]

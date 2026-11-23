@@ -100,6 +100,10 @@ fn yes() -> bool {
 pub struct SessionSettings {
     /// A session ends after this many minutes without an event.
     pub idle_timeout_minutes: u32,
+    /// After a logout (or a crash: the server logs the character out) the
+    /// session waits this many minutes for a relogin and then goes on;
+    /// 0 = a logout ends the session at once.
+    pub resume_minutes: u32,
     pub streak_step: u32,
     pub killfeed_len: usize,
 }
@@ -108,6 +112,7 @@ impl Default for SessionSettings {
     fn default() -> Self {
         Self {
             idle_timeout_minutes: 30,
+            resume_minutes: 15,
             streak_step: 5,
             killfeed_len: 12,
         }

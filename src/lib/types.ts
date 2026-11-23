@@ -108,7 +108,7 @@ export interface Config {
   squad: CharacterSettings[];
   discord: { enabled: boolean; app_id: string; show_character: boolean; show_kd: boolean; show_kills: boolean; show_duration: boolean; show_location: boolean };
   updates: { check_on_start: boolean };
-  session: { idle_timeout_minutes: number; streak_step: number; killfeed_len: number };
+  session: { idle_timeout_minutes: number; resume_minutes: number; streak_step: number; killfeed_len: number };
   overlay: OverlaySettings;
   voice: VoiceSettings;
   crosshair: CrosshairSettings;

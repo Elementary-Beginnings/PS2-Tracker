@@ -105,6 +105,8 @@
     <div class="row">
       <label class="field">{t.settings.idle}
         <input type="number" min="5" max="240" bind:value={config.session.idle_timeout_minutes} onchange={() => save()} /></label>
+      <label class="field">{t.settings.resume}
+        <input type="number" min="0" max="120" bind:value={config.session.resume_minutes} onchange={() => save()} /></label>
       <label class="field">{t.settings.streakStep}
         <input type="number" min="0" max="50" bind:value={config.session.streak_step} onchange={() => save()} /></label>
       <label class="field">{t.settings.feedLen}

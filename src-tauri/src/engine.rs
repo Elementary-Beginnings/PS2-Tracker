@@ -440,6 +440,34 @@ pub fn process_outputs(
                 };
                 show_toast(app, &t, true, true);
             }
+            TrackerOutput::SessionPaused(id) => {
+                if let Some(s) = lock(&st.tracker).session_mut(id)
+                    && let Err(e) = st.store.save_session(s)
+                {
+                    tracing::warn!(error = %e, "session not saved");
+                }
+                if own.contains(&id) {
+                    let mins = st.cfg().session.resume_minutes;
+                    let t = Toast {
+                        title: "Logged out – session paused".into(),
+                        text: format!("Log back in within {mins} min and the session goes on."),
+                        kind: "session".into(),
+                    };
+                    show_toast(app, &t, true, false);
+                }
+                let _ = app.emit("sessions-changed", ());
+            }
+            TrackerOutput::SessionResumed(id) => {
+                if own.contains(&id) {
+                    let t = Toast {
+                        title: "Session resumed".into(),
+                        text: "Back in game – the stats continue.".into(),
+                        kind: "session".into(),
+                    };
+                    show_toast(app, &t, true, false);
+                }
+                let _ = app.emit("sessions-changed", ());
+            }
             TrackerOutput::SessionEnded(mut s) => {
                 {
                     let mut v = lock(&st.voice);
