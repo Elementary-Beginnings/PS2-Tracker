@@ -1,0 +1,94 @@
+# Dependabot: Minor- und Patch-Updates nach gruener CI selbst nach main mergen.
+#
+# Ablauf: Der Workflow "CI" laeuft fuer den Dependabot-PR. Ist er erfolgreich,
+# startet dieser Workflow (workflow_run, immer in der Fassung von main - ein PR
+# kann ihn also nicht veraendern). Er prueft:
+#   - PR von dependabot[bot] aus diesem Repo, Head-Commit unveraendert,
+#   - alle Checks dieses Commits fertig und keiner rot,
+#   - nur version-update:semver-patch/minor (Major bleibt fuer Max liegen;
+#     Sicherheitsupdates ohne update-type: gleiche Major-Version),
+# und mergt dann per Squash. Danach loescht er den Branch und startet die
+# main-Workflows aus MAIN_WORKFLOWS per workflow_dispatch: Ein Merge mit dem
+# GITHUB_TOKEN loest selbst keine push-Workflows aus (Deploy, Release).
+#
+# Kein Checkout, kein Code aus dem PR, keine Aktion von Dritten - nur gh/jq.
+name: Dependabot auto-merge
+
+on:
+  workflow_run:
+    workflows: [CI, CodeQL, Dependency review, Flatpak]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: dependabot-automerge
+  cancel-in-progress: false
+
+env:
+  # Workflows, die nach dem Merge auf main laufen sollen (Dateinamen).
+  MAIN_WORKFLOWS: "ci.yml codeql.yml"
+
+jobs:
+  merge:
+    name: Minor/Patch-Update mergen
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      startsWith(github.event.workflow_run.head_branch, 'dependabot/')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+      checks: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+    steps:
+      - name: Pruefen und mergen
+        run: |
+          set -euo pipefail
+          pr=$(gh api "repos/${REPO}/pulls?state=open&head=${REPO%%/*}:${HEAD_BRANCH}" --jq '.[0]')
+          if [ -z "$pr" ] || [ "$pr" = "null" ]; then echo "Kein offener PR fuer ${HEAD_BRANCH}"; exit 0; fi
+          num=$(jq -r .number <<<"$pr")
+          [ "$(jq -r .user.login <<<"$pr")" = "dependabot[bot]" ] || { echo "#$num nicht von Dependabot"; exit 0; }
+          [ "$(jq -r .head.sha <<<"$pr")" = "$HEAD_SHA" ] || { echo "#$num hat inzwischen einen neueren Commit"; exit 0; }
+
+          # Alle Checks des Commits fertig und keiner rot?
+          checks=$(gh api --paginate "repos/${REPO}/commits/${HEAD_SHA}/check-runs?per_page=100" --jq '.check_runs[] | "\(.status) \(.conclusion) \(.name)"')
+          if grep -v '^completed ' <<<"$checks" | grep -q .; then echo "#$num: Checks laufen noch - der naechste Lauf entscheidet"; exit 0; fi
+          if grep -Eq '^completed (failure|cancelled|timed_out|action_required|startup_failure) ' <<<"$checks"; then
+            echo "#$num: rote Checks:"; grep -E '^completed (failure|cancelled|timed_out|action_required|startup_failure) ' <<<"$checks"; exit 0
+          fi
+
+          # Art des Updates aus Dependabots Commit-Nachrichten.
+          msgs=$(gh api "repos/${REPO}/pulls/${num}/commits?per_page=100" --jq '.[].commit.message')
+          types=$(grep -oE 'update-type: *[a-z:-]+' <<<"$msgs" | sed 's/update-type: *//' | sort -u || true)
+          if [ -n "$types" ]; then
+            if grep -vqxE 'version-update:semver-(patch|minor)' <<<"$types"; then
+              echo "::notice::#$num enthaelt ein Major-Update ($(tr '\n' ' ' <<<"$types")) - bleibt zur Pruefung liegen"; exit 0
+            fi
+          else
+            # Sicherheitsupdate ohne update-type: "from A to B" mit gleicher Major
+            # (unter 1.0 auch gleicher Minor) gilt als Minor/Patch.
+            pairs=$(grep -oE 'from [0-9]+\.[0-9]+\.[0-9]+[^ ]* to [0-9]+\.[0-9]+\.[0-9]+' <<<"$msgs" | sort -u || true)
+            [ -n "$pairs" ] || { echo "::warning::#$num ohne Versionsangaben - nicht gemergt"; exit 0; }
+            while read -r _ a _ b; do
+              IFS=. read -r am an _ <<<"$a"; IFS=. read -r bm bn _ <<<"$b"
+              if [ "$am" != "$bm" ] || { [ "$am" = 0 ] && [ "$an" != "$bn" ]; }; then
+                echo "::notice::#$num: $a -> $b ist ein Major-Sprung - bleibt liegen"; exit 0
+              fi
+            done <<<"$pairs"
+          fi
+
+          gh api -X PUT "repos/${REPO}/pulls/${num}/merge" -f merge_method=squash -f sha="$HEAD_SHA" --jq '"#'"$num"' gemergt: \(.sha)"'
+          gh api -X DELETE "repos/${REPO}/git/refs/heads/${HEAD_BRANCH}" || true
+
+          for wf in ${MAIN_WORKFLOWS}; do
+            gh workflow run "$wf" --repo "$REPO" --ref main && echo "gestartet: $wf"
+          done
