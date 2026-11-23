@@ -5,6 +5,13 @@ after [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Release workflow: the Flatpak MetaInfo is validated with the current
+  `appstreamcli` from `org.flatpak.Builder`; the older one in Ubuntu 22.04
+  rejected the valid `<developer>` tag and the `vcs-browser` URL, so 1.0.1
+  shipped without the Flatpak bundle.
+
 ## [1.0.1] – 2026-11-23
 
 ### Added

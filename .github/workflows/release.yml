@@ -232,7 +232,6 @@ jobs:
           curl -fsSLo /tmp/fcg.py "https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/${FCG_COMMIT}/cargo/flatpak-cargo-generator.py"
           echo "${FCG_SHA256}  /tmp/fcg.py" | sha256sum -c -
           python3 /tmp/fcg.py Cargo.lock -o packaging/flatpak/cargo-sources.json
-          appstreamcli validate --no-net packaging/flatpak/dev.herz.Ps2Tracker.metainfo.xml
           desktop-file-validate packaging/flatpak/dev.herz.Ps2Tracker.desktop
       - name: flatpak-builder
         env:
@@ -252,6 +251,12 @@ jobs:
             [ -z "${PS2_DEFAULT_DISCORD_APP_ID:-}" ] || printf 'PS2_DEFAULT_DISCORD_APP_ID = "%s"\n' "$PS2_DEFAULT_DISCORD_APP_ID" >> .cargo/config.toml
           fi
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          # MetaInfo check with a current AppStream: appstreamcli from Ubuntu
+          # 22.04 (0.15) does not know <developer> and url type vcs-browser
+          # and fails on valid files. org.flatpak.Builder ships a current one.
+          flatpak install --user -y --noninteractive flathub org.flatpak.Builder
+          flatpak run --command=appstreamcli org.flatpak.Builder \
+            validate --no-net --explain packaging/flatpak/dev.herz.Ps2Tracker.metainfo.xml
           flatpak-builder --user --install-deps-from=flathub --disable-rofiles-fuse \
             --force-clean --repo=flatpak-repo flatpak-build packaging/flatpak/dev.herz.Ps2Tracker.yml
           rm -f .cargo/config.toml
