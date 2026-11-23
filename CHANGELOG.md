@@ -5,6 +5,11 @@ after [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Security
+
+- `cookie` 0.18.2 → 0.18.3 (RUSTSEC-2026-0594: private cookie nonces could
+  repeat in processes that fork). Indirect dependency; lockfile only.
+
 ## [1.0.3] – 2026-11-23
 
 ### Fixed
