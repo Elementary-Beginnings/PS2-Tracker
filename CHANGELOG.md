@@ -5,6 +5,8 @@ after [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.4] – 2026-11-23
+
 ### Security
 
 - `cookie` 0.18.2 → 0.18.3 (RUSTSEC-2026-0594: private cookie nonces could

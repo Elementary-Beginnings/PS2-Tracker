@@ -3,7 +3,7 @@
 # Version and checksum are filled in by tools/aur_update.sh (release workflow).
 # Building from source instead: packaging/arch/PKGBUILD in the repository.
 pkgname=ps2-tracker-bin
-pkgver=1.0.3
+pkgver=1.0.4
 pkgrel=1
 pkgdesc="Session stats, overlay, crosshair and voice packs for PlanetSide 2 (Census API only, never touches the game)"
 arch=('x86_64')
