@@ -29,6 +29,8 @@ after [SemVer](https://semver.org/).
 
 ### Fixed
 
+- The duration in the *History* list leaves out the time logged out within
+  the resume window, like the live page and the session detail.
 - The achievement/voice pack pop-up no longer stays on screen as a still
   image (KDE Plasma/KWin over XWayland, NVIDIA): the pop-up window is now
   hidden after the fade-out and only mapped again for the next pop-up; the

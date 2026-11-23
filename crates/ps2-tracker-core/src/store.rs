@@ -46,6 +46,10 @@ pub struct SessionSummary {
     pub world_id: Option<u32>,
     #[serde(default)]
     pub zone_id: Option<u32>,
+    /// Seconds logged out within the resume window (from the session JSON);
+    /// the history shows `ended_at - started_at - paused_secs` as duration.
+    #[serde(default)]
+    pub paused_secs: i64,
 }
 
 impl StoreError {
@@ -424,7 +428,8 @@ impl Store {
 /// docs/session-file.schema.json); can be imported again.
 const SUMMARY_COLUMNS: &str =
     "id, character_id, character_name, started_at, ended_at, kills, deaths,
-     headshots, xp, data_version, faction_id, world_id, zone_id";
+     headshots, xp, data_version, faction_id, world_id, zone_id,
+     COALESCE(json_extract(data, '$.paused_secs'), 0)";
 
 fn summary_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<SessionSummary> {
     Ok(SessionSummary {
@@ -441,6 +446,7 @@ fn summary_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<SessionSummary> {
         faction_id: r.get(10)?,
         world_id: r.get(11)?,
         zone_id: r.get(12)?,
+        paused_secs: r.get(13)?,
     })
 }
 
@@ -584,6 +590,7 @@ mod tests {
         st.save_session(&mut a).unwrap();
         let mut b = sample();
         b.started_at = 300;
+        b.paused_secs = 30;
         b.end(400);
         st.save_session(&mut b).unwrap();
         // still running: not a candidate
@@ -597,6 +604,8 @@ mod tests {
         let last = st.last_ended_session("1").unwrap().unwrap();
         assert_eq!(last.id, b.id.unwrap());
         assert_eq!(last.ended_at, Some(400));
+        // the history duration leaves out the time logged out
+        assert_eq!(last.paused_secs, 30);
         assert_eq!(
             st.last_ended_session("2").unwrap().unwrap().id,
             other.id.unwrap()

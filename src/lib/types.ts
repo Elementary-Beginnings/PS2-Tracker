@@ -315,6 +315,8 @@ export interface SessionSummary {
   xp: number;
   data_version?: number;
   faction_id?: number | null;
+  /** Seconds logged out within the resume window (not playtime). */
+  paused_secs?: number;
 }
 
 export interface EventLine {

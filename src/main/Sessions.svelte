@@ -123,7 +123,7 @@
                 {#if (s.data_version ?? 2) < 2}<span class="badge muted" title={t.sessions.basicDataTitle}>{t.sessions.basicData}</span>{/if}
               </td>
               <td>{s.character_name}</td>
-              <td class="num">{s.ended_at ? duration(s.ended_at - s.started_at) : "–"}</td>
+              <td class="num">{s.ended_at ? duration(Math.max(0, s.ended_at - s.started_at - (s.paused_secs ?? 0))) : "–"}</td>
               <td class="num">{s.kills}</td>
               <td class="num">{s.deaths}</td>
               <td class="num">{num(kd(s), 2)}</td>
