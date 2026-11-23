@@ -1,0 +1,42 @@
+name: Feature request
+description: An idea for the tracker.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The tracker only uses the public Daybreak Census API and never touches the game:
+        ideas that need memory reading, injection or hit/damage data per shot are out of scope
+        (see [Crosshair → Hit feedback](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Crosshair#hit-feedback)).
+  - type: textarea
+    id: problem
+    attributes:
+      label: What do you want to do?
+      description: The situation or problem, not only the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: How could the tracker help? Mockups or examples welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Live session / kill feed
+        - History, analytics, export
+        - Overlay / OBS
+        - Crosshair
+        - Voice packs / sounds
+        - Squad / outfit
+        - Discord / updates
+        - Installation / packaging
+        - Other

@@ -63,6 +63,14 @@ After changing dependencies, regenerate `THIRD-PARTY-NOTICES.md` with
 `python3 -I tools/third_party_notices.py`. Releases, the update signature and
 the AUR package are described in `docs/release.md`.
 
+## Issues
+
+Issues use forms (`.github/ISSUE_TEMPLATE/`): bug report, feature request,
+voice pack problem and question. They set the labels `bug`, `enhancement`,
+`voice-pack` and `question`. Never attach voice pack files (third-party
+content) – a link or the source is enough. Questions and chat also fit the
+[Discord](https://discord.elme.games/).
+
 ## Pull requests
 
 - One topic per pull request, with tests for new logic (the core crate

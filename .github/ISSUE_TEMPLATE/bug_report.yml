@@ -1,0 +1,81 @@
+name: Bug report
+description: Something does not work as described.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please check [Troubleshooting and FAQ](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Troubleshooting-and-FAQ) first.
+        **Security problems:** do not open an issue, use [private vulnerability reporting](https://github.com/Elementary-Beginnings/ps2-tracker/security/advisories/new).
+        Problems with a voice pack: please use the *Voice pack problem* form.
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: "*Settings → Advanced → About* → **Copy for a bug report** (or click the version in the sidebar) and paste it here."
+      placeholder: "PS2 Session Tracker 1.0.0 (commit abc1234, built 2026-11-22)"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system and session
+      options:
+        - Linux – KDE Plasma (Wayland)
+        - Linux – KDE Plasma (X11)
+        - Linux – GNOME (Wayland)
+        - Linux – GNOME (X11)
+        - Linux – other desktop (Wayland)
+        - Linux – other desktop (X11)
+        - Windows 11
+        - Windows 10
+    validations:
+      required: true
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution / desktop version
+      description: Optional, e.g. "CachyOS, Plasma 6.6, NVIDIA 580".
+  - type: dropdown
+    id: install
+    attributes:
+      label: Installation
+      options:
+        - AppImage
+        - Arch package / AUR
+        - Flatpak
+        - Binary tarball
+        - Windows installer
+        - Built from source
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Screenshots help, especially for overlay or crosshair problems.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log excerpt
+      description: |
+        From `~/.local/state/ps2-tracker/ps2-tracker.log` (Windows: `%APPDATA%\ps2-tracker\ps2-tracker.log`); for details start with `--debug-console`.
+        **Remove your Census service ID** if it appears anywhere.
+      render: shell

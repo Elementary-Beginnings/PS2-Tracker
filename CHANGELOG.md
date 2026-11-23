@@ -33,6 +33,7 @@ after [SemVer](https://semver.org/).
   workflow); the README files are short overviews with links. *Settings →
   Advanced → About* shows the wiki and issue addresses; the Flatpak metainfo
   links the wiki and the FAQ.
+- Issues use forms: bug report, feature request, voice pack problem, question.
 
 ### Fixed
 

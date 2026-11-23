@@ -1,0 +1,62 @@
+name: Voice pack problem
+description: A voice pack does not import, or sounds play on the wrong events.
+labels: ["voice-pack"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Please do not attach pack files** (sounds, `.rtst_vpk`, ZIPs) – most packs are third-party content.
+        Name the source or a link instead. Format details: [Voice Pack Format](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Voice-Pack-Format).
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: "*Settings → Advanced → About* → **Copy for a bug report**."
+    validations:
+      required: true
+  - type: input
+    id: pack
+    attributes:
+      label: Pack name
+      placeholder: "e.g. Deadpool v2"
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Where the pack comes from
+      description: A link or the name of the site – no files.
+  - type: dropdown
+    id: format
+    attributes:
+      label: Format shown after the import
+      description: First part of the import summary, e.g. "Recursion PAK · 96 events · …".
+      options:
+        - Open format
+        - Recursion XML
+        - Recursion PAK
+        - Recursion PB
+        - Import failed / no format shown
+    validations:
+      required: true
+  - type: textarea
+    id: warnings
+    attributes:
+      label: Import summary and warnings
+      description: Copy the summary and any messages shown after the import (e.g. embedded files not used by any event, an error message).
+      render: text
+  - type: textarea
+    id: events
+    attributes:
+      label: Affected events
+      description: Which game events play the wrong sound or none, and what you expected (e.g. "headshot kill plays PER_KILL instead of HEAD_SHOT").
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log excerpt
+      description: |
+        Lines starting with `voice:` from `~/.local/state/ps2-tracker/ps2-tracker.log` (Windows: `%APPDATA%\ps2-tracker\`).
+        **Remove your Census service ID** if it appears anywhere.
+      render: shell
