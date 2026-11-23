@@ -14,6 +14,16 @@ after [SemVer](https://semver.org/).
   then goes on instead of starting a new one. The time logged out does not
   count as playtime; if the window runs out, the session ends at the logout.
 
+### Fixed
+
+- Adding a squad member could hang for minutes during play, often right after
+  the first one: every kill started its own Census name lookup, and with
+  several tracked characters these queued up faster than the rate limit
+  allows. Names are now collected for a second and looked up in one batch, and
+  lookups you wait for (adding a character or squad member, outfit search,
+  saving settings) use their own queue with a 15 s timeout. The add button
+  shows "Searching …" meanwhile.
+
 ## [1.0.4] – 2026-11-23
 
 ### Security

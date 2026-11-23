@@ -94,7 +94,12 @@ pub struct CensusClient {
     base: String,
     service_id: String,
     limiter: Arc<RateLimiter>,
+    /// Separate slot queue for lookups a user is waiting for (see
+    /// [`CensusClient::interactive`]), so they never queue behind background work.
+    interactive_limiter: Arc<RateLimiter>,
     retries: u32,
+    /// Per-request timeout below the client-wide 45 s (interactive lookups).
+    request_timeout: Option<Duration>,
 }
 
 /// Without the service ID (logs).
@@ -132,8 +137,23 @@ impl CensusClient {
             service_id: service_id.to_owned(),
             // Census has no documented limit; 4 requests/s is conservative.
             limiter: Arc::new(RateLimiter::new(Duration::from_millis(250))),
+            interactive_limiter: Arc::new(RateLimiter::new(Duration::from_millis(250))),
             retries: 3,
+            request_timeout: None,
         })
+    }
+
+    /// The same client for lookups a user is waiting for (adding a character or
+    /// squad member, outfit search): its own rate-limit queue, so background name
+    /// resolution during play cannot delay it, one retry and a 15 s timeout, so a
+    /// slow Census answers with an error instead of blocking the form.
+    pub fn interactive(&self) -> Self {
+        Self {
+            limiter: Arc::clone(&self.interactive_limiter),
+            retries: 1,
+            request_timeout: Some(Duration::from_secs(15)),
+            ..self.clone()
+        }
     }
 
     pub fn service_id(&self) -> &str {
@@ -219,13 +239,11 @@ impl CensusClient {
         collection: &str,
         query: &[(&str, String)],
     ) -> Result<Vec<Value>, CensusError> {
-        let resp = self
-            .http
-            .get(self.url(collection))
-            .query(query)
-            .send()
-            .await?
-            .error_for_status()?;
+        let mut req = self.http.get(self.url(collection)).query(query);
+        if let Some(t) = self.request_timeout {
+            req = req.timeout(t);
+        }
+        let resp = req.send().await?.error_for_status()?;
         let body: Value = resp.json().await?;
         parse_list(collection, body)
     }

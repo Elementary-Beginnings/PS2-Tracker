@@ -130,6 +130,7 @@ fn init_state() -> Result<AppState, Box<dyn std::error::Error>> {
         audio,
         obs_tx,
         obs_stop: Mutex::new(None),
+        name_queue: Mutex::new(Default::default()),
         config: RwLock::new(config),
     })
 }

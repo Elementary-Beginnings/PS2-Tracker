@@ -246,6 +246,7 @@ export const en = {
     addTitle: "Add a player",
     namePlaceholder: "Character name",
     add: "Add",
+    searching: "Searching …",
     added: (n: string) => `${n} added to the squad`,
     addedN: (n: number) => `${n} players added`,
     duplicate: "Already tracked",

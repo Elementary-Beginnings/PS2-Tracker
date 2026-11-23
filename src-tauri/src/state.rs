@@ -41,8 +41,18 @@ pub struct VoiceState {
     pub engines: HashMap<CharacterId, TriggerEngine>,
 }
 
+/// Names waiting for the batched Census lookup (see `engine::request_names`).
+#[derive(Default)]
+pub struct NameQueue {
+    pub items: std::collections::BTreeSet<u32>,
+    pub chars: std::collections::BTreeSet<ps2_tracker_core::events::CharacterId>,
+    /// A worker is draining the queue.
+    pub running: bool,
+}
+
 pub struct AppState {
     pub paths: Paths,
+    pub name_queue: Mutex<NameQueue>,
     pub config: RwLock<Config>,
     pub store: Arc<Store>,
     pub names: SharedNames,

@@ -96,7 +96,11 @@ pub async fn apply_config(app: &AppHandle, config: Config) -> R<()> {
 
 #[tauri::command]
 pub async fn lookup_character(st: S<'_>, name: String) -> R<CharacterInfo> {
-    st.census().character_by_name(&name).await.map_err(e)
+    st.census()
+        .interactive()
+        .character_by_name(&name)
+        .await
+        .map_err(e)
 }
 
 #[tauri::command]
@@ -289,7 +293,7 @@ pub struct OutfitResult {
 /// Outfit members by tag or name (Census, read-only), for the squad import.
 #[tauri::command]
 pub async fn outfit_members(st: S<'_>, query: String) -> R<OutfitResult> {
-    let census = st.census();
+    let census = st.census().interactive();
     let (outfit, members) = census.outfit_members(&query, 1000).await.map_err(e)?;
     Ok(OutfitResult { outfit, members })
 }

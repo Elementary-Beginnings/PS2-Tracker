@@ -200,7 +200,7 @@
     <h3>{t.squad.addTitle} <span class="muted">({config.squad.length}/{MAX})</span></h3>
     <form class="row" onsubmit={addByName}>
       <input bind:value={name} placeholder={t.squad.namePlaceholder} aria-label={t.squad.namePlaceholder} maxlength="32" />
-      <button type="submit" disabled={busy || full || !inTauri()}>{t.squad.add}</button>
+      <button type="submit" disabled={busy || full || !inTauri()}>{busy ? t.squad.searching : t.squad.add}</button>
     </form>
   </section>
   <section class="card grid">

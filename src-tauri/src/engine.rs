@@ -76,7 +76,8 @@ fn set_status(app: &AppHandle, f: impl FnOnce(&mut EssStatus)) {
 /// Fills in missing character IDs via Census and hands the characters to the tracker.
 pub async fn sync_characters(app: &AppHandle) {
     let st = state(app);
-    let census = st.census();
+    // runs while the settings save waits for it
+    let census = st.census().interactive();
     let mut cfg = st.cfg().clone();
     let mut changed = false;
     for c in cfg
@@ -622,20 +623,57 @@ pub fn fetch_lifetime(app: &AppHandle, id: CharacterId) {
     });
 }
 
+/// How long the name worker collects IDs before one batched lookup.
+const NAME_BATCH: Duration = Duration::from_secs(1);
+
+/// Queues weapon and character names of a kill for resolution. One worker
+/// collects them for [`NAME_BATCH`] and resolves them in one batched lookup,
+/// instead of one Census task per event: during a fight with several tracked
+/// characters that would request faster than the rate limit allows, and the
+/// queue would grow without bound.
 fn request_names(app: &AppHandle, ev: &GameEvent) {
     let (items, chars) = match ev {
         GameEvent::Death(d) => (
-            vec![d.attacker_weapon_id],
-            vec![d.character_id, d.attacker_character_id],
+            [d.attacker_weapon_id],
+            [d.character_id, d.attacker_character_id],
         ),
         GameEvent::VehicleDestroy(v) => (
-            vec![v.attacker_weapon_id],
-            vec![v.character_id, v.attacker_character_id],
+            [v.attacker_weapon_id],
+            [v.character_id, v.attacker_character_id],
         ),
         _ => return,
     };
-    let app = app.clone();
-    tauri::async_runtime::spawn(async move { resolve(&app, items, chars).await });
+    let st = state(app);
+    let start = {
+        let mut q = lock(&st.name_queue);
+        q.items.extend(items.into_iter().filter(|i| *i != 0));
+        q.chars.extend(chars.into_iter().filter(|c| *c != 0));
+        !std::mem::replace(&mut q.running, true)
+    };
+    if start {
+        let app = app.clone();
+        tauri::async_runtime::spawn(async move { name_worker(&app).await });
+    }
+}
+
+/// Drains the name queue in batches until it stays empty.
+async fn name_worker(app: &AppHandle) {
+    let st = state(app);
+    loop {
+        tokio::time::sleep(NAME_BATCH).await;
+        let (items, chars) = {
+            let mut q = lock(&st.name_queue);
+            if q.items.is_empty() && q.chars.is_empty() {
+                q.running = false;
+                return;
+            }
+            (
+                std::mem::take(&mut q.items).into_iter().collect(),
+                std::mem::take(&mut q.chars).into_iter().collect(),
+            )
+        };
+        resolve(app, items, chars).await;
+    }
 }
 
 /// Resolves missing names via Census, caches them and refreshes the display.
