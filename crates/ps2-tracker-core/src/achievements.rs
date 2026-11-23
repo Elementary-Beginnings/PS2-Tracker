@@ -127,6 +127,16 @@ impl AchievementEngine {
         }
     }
 
+    /// Engine for a session that is opened again ("Resume last session"):
+    /// achievements already unlocked in it count as fired, so non-repeatable
+    /// ones are not unlocked a second time.
+    pub fn restored(set: &RuleSet, unlocked: &[Unlocked]) -> Self {
+        let mut e = Self::new(set);
+        e.fired = unlocked.iter().map(|u| u.id.clone()).collect();
+        e.unlocked = unlocked.to_vec();
+        e
+    }
+
     /// Call after `Session::apply` with the session state *after* the event.
     /// `previous_killer` is `last_killer` *before* the event (for revenge).
     pub fn on_outcomes(

@@ -265,29 +265,31 @@ impl Store {
         offset: u32,
     ) -> Result<Vec<SessionSummary>, StoreError> {
         let c = self.conn();
-        let mut st = c.prepare(
-            "SELECT id, character_id, character_name, started_at, ended_at, kills, deaths, headshots, xp,
-             data_version, faction_id, world_id, zone_id
-             FROM sessions ORDER BY started_at DESC LIMIT ?1 OFFSET ?2",
-        )?;
-        let rows = st.query_map(params![limit, offset], |r| {
-            Ok(SessionSummary {
-                id: r.get(0)?,
-                character_id: r.get(1)?,
-                character_name: r.get(2)?,
-                started_at: r.get(3)?,
-                ended_at: r.get(4)?,
-                kills: r.get(5)?,
-                deaths: r.get(6)?,
-                headshots: r.get(7)?,
-                xp: r.get::<_, i64>(8)? as u64,
-                data_version: r.get(9)?,
-                faction_id: r.get(10)?,
-                world_id: r.get(11)?,
-                zone_id: r.get(12)?,
-            })
-        })?;
+        let mut st = c.prepare(&format!(
+            "SELECT {SUMMARY_COLUMNS} FROM sessions ORDER BY started_at DESC LIMIT ?1 OFFSET ?2"
+        ))?;
+        let rows = st.query_map(params![limit, offset], summary_row)?;
         Ok(rows.collect::<Result<_, _>>()?)
+    }
+
+    /// The most recently ended session of a character ("Resume last
+    /// session"), if any.
+    pub fn last_ended_session(
+        &self,
+        character_id: &str,
+    ) -> Result<Option<SessionSummary>, StoreError> {
+        Ok(self
+            .conn()
+            .query_row(
+                &format!(
+                    "SELECT {SUMMARY_COLUMNS} FROM sessions
+                     WHERE character_id=?1 AND ended_at IS NOT NULL
+                     ORDER BY ended_at DESC, id DESC LIMIT 1"
+                ),
+                [character_id],
+                summary_row,
+            )
+            .optional()?)
     }
 
     pub fn load_session(&self, id: i64, config: SessionConfig) -> Result<Session, StoreError> {
@@ -420,6 +422,28 @@ impl Store {
 /// Exports a session as JSON (complete, with resolved names).
 /// Versioned session file (format `ps2-tracker-session`, see
 /// docs/session-file.schema.json); can be imported again.
+const SUMMARY_COLUMNS: &str =
+    "id, character_id, character_name, started_at, ended_at, kills, deaths,
+     headshots, xp, data_version, faction_id, world_id, zone_id";
+
+fn summary_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<SessionSummary> {
+    Ok(SessionSummary {
+        id: r.get(0)?,
+        character_id: r.get(1)?,
+        character_name: r.get(2)?,
+        started_at: r.get(3)?,
+        ended_at: r.get(4)?,
+        kills: r.get(5)?,
+        deaths: r.get(6)?,
+        headshots: r.get(7)?,
+        xp: r.get::<_, i64>(8)? as u64,
+        data_version: r.get(9)?,
+        faction_id: r.get(10)?,
+        world_id: r.get(11)?,
+        zone_id: r.get(12)?,
+    })
+}
+
 pub fn export_json(session: &Session, names: &NameCache) -> Result<String, StoreError> {
     let f = crate::sessionfile::SessionFile::new(session, names);
     Ok(serde_json::to_string_pretty(&f)?)
@@ -549,6 +573,34 @@ mod tests {
             st.load_session(id, SessionConfig::default()),
             Err(StoreError::NotFound(_))
         ));
+    }
+
+    #[test]
+    fn last_ended_session_of_a_character() {
+        let st = Store::in_memory().unwrap();
+        assert!(st.last_ended_session("1").unwrap().is_none());
+        let mut a = sample();
+        a.end(200);
+        st.save_session(&mut a).unwrap();
+        let mut b = sample();
+        b.started_at = 300;
+        b.end(400);
+        st.save_session(&mut b).unwrap();
+        // still running: not a candidate
+        let mut running = sample();
+        running.started_at = 500;
+        st.save_session(&mut running).unwrap();
+        // another character
+        let mut other = Session::new(2, "Other", Some(1), 600, SessionConfig::default());
+        other.end(700);
+        st.save_session(&mut other).unwrap();
+        let last = st.last_ended_session("1").unwrap().unwrap();
+        assert_eq!(last.id, b.id.unwrap());
+        assert_eq!(last.ended_at, Some(400));
+        assert_eq!(
+            st.last_ended_session("2").unwrap().unwrap().id,
+            other.id.unwrap()
+        );
     }
 
     #[test]

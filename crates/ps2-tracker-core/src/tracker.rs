@@ -25,8 +25,46 @@ pub enum TrackerOutput {
     SessionEnded(Box<Session>),
     /// Logout with a resume window: the session waits for a relogin.
     SessionPaused(CharacterId),
-    /// Relogin within the window: the same session goes on.
+    /// Relogin within the window (or "Resume now"): the same session goes on.
     SessionResumed(CharacterId),
+    /// An ended session was opened again ("Resume last session").
+    SessionReopened(CharacterId),
+}
+
+/// How long after its end a session can still be opened again with "Resume
+/// last session": 6 hours. Long enough for a meal, an errand, a server
+/// maintenance or a crash that outlasted the resume window; short enough that
+/// last night's session is not merged into today's (one session stays one
+/// play day, which the history and the analytics rely on).
+pub const REOPEN_MAX_SECS: i64 = 6 * 3600;
+
+/// Why an ended session cannot be opened again.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ReopenError {
+    /// Not one of the user's own (tracked) characters.
+    NotOwn,
+    /// The character already has a running session.
+    Running,
+    /// The session belongs to another character or has not ended.
+    NotEnded,
+    /// Ended longer ago than [`REOPEN_MAX_SECS`].
+    TooOld,
+}
+
+impl std::fmt::Display for ReopenError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::NotOwn => "not one of your active characters",
+            Self::Running => "a session is already running for this character",
+            Self::NotEnded => "the session has not ended",
+            Self::TooOld => "the last session ended too long ago to resume it",
+        })
+    }
+}
+
+/// Can a session that ended at `ended_at` still be opened again at `now`?
+pub fn reopenable(ended_at: i64, now: i64) -> bool {
+    now >= ended_at && now - ended_at <= REOPEN_MAX_SECS
 }
 
 #[derive(Debug, Clone)]
@@ -161,9 +199,62 @@ impl Tracker {
         }
     }
 
+    /// Resume window after a logout in seconds (0 = off).
+    pub fn resume_grace(&self) -> i64 {
+        self.resume_grace_secs
+    }
+
+    /// End of the resume window of a paused session (`None` if not paused).
+    pub fn resume_deadline(&self, id: CharacterId) -> Option<i64> {
+        self.session(id)
+            .and_then(|s| s.paused_at)
+            .map(|p| p + self.resume_grace_secs)
+    }
+
+    /// "Resume now": continues a paused session by hand (the relogin was not
+    /// seen). The time since the logout counts as paused.
+    pub fn resume_manual(&mut self, id: CharacterId, now: i64) -> Vec<TrackerOutput> {
+        match self.active.get_mut(&id) {
+            Some((s, _)) if s.is_paused() => {
+                s.resume(now);
+                s.last_event_at = s.last_event_at.max(now);
+                if self.is_own(id) {
+                    self.focus = Some(id);
+                }
+                vec![TrackerOutput::SessionResumed(id)]
+            }
+            _ => vec![],
+        }
+    }
+
+    /// "Resume last session": opens an ended session of an own character
+    /// again (same database ID, so saving updates it). The time since its end
+    /// counts as paused. Allowed up to [`REOPEN_MAX_SECS`] after the end.
+    pub fn reopen(&mut self, mut s: Session, now: i64) -> Result<Vec<TrackerOutput>, ReopenError> {
+        let id = s.character_id;
+        if !self.is_own(id) {
+            return Err(ReopenError::NotOwn);
+        }
+        if self.active.contains_key(&id) {
+            return Err(ReopenError::Running);
+        }
+        let ended = s.ended_at.ok_or(ReopenError::NotEnded)?;
+        if !reopenable(ended, now) {
+            return Err(ReopenError::TooOld);
+        }
+        s.reopen(now);
+        let engine = AchievementEngine::restored(&self.rules, &s.achievements);
+        self.active.insert(id, (s, engine));
+        self.focus = Some(id);
+        Ok(vec![TrackerOutput::SessionReopened(id)])
+    }
+
+    /// Ends a running session. A paused session ends at the time of the
+    /// logout (as when the resume window runs out), otherwise at `at`.
     pub fn stop(&mut self, id: CharacterId, at: i64) -> Option<Session> {
         let (mut s, _) = self.active.remove(&id)?;
-        s.end(at.max(s.last_event_at));
+        let end = s.paused_at.unwrap_or_else(|| at.max(s.last_event_at));
+        s.end(end);
         if self.focus == Some(id) {
             self.focus = self.active.keys().next().copied();
         }
@@ -363,6 +454,18 @@ pub struct SessionSnapshot {
     /// Kills/deaths by enemy class and own class use (data version 4).
     #[serde(default)]
     pub classes: ClassStats,
+    /// Logged out, waiting for a relogin: time of the logout (`None` while
+    /// playing).
+    #[serde(default)]
+    pub paused_at: Option<i64>,
+    /// End of the resume window while paused; the session ends then (at the
+    /// time of the logout) unless the character comes back.
+    #[serde(default)]
+    pub resume_until: Option<i64>,
+    /// Seconds paused so far (logged out, or between end and "Resume last
+    /// session"); not playtime.
+    #[serde(default)]
+    pub paused_secs: i64,
 }
 
 /// Ranking of the overlay block "Squad top 3".
@@ -625,6 +728,9 @@ pub fn snapshot(
         zone_name: s.zone_id.and_then(|i| names.zones.get(&i).cloned()),
         class: class_of_opt(s.loadout_id),
         classes: class_stats(&s.timeline),
+        paused_at: s.paused_at,
+        resume_until: None,
+        paused_secs: s.paused_secs,
     }
 }
 
@@ -905,6 +1011,129 @@ mod tests {
         // a later login starts a new session
         let o = t.handle(&session_event(true, 900));
         assert_eq!(o[0], TrackerOutput::SessionStarted(ME));
+    }
+
+    #[test]
+    fn manual_resume_while_paused() {
+        let mut t = tracker();
+        t.set_resume_grace(600);
+        t.handle(&session_event(true, 100));
+        t.handle(&kill(110));
+        t.handle(&session_event(false, 200));
+        assert_eq!(t.resume_deadline(ME), Some(800));
+        let snap = snapshot(
+            t.session(ME).unwrap(),
+            true,
+            300,
+            &NameCache::default(),
+            None,
+            &[],
+        );
+        assert_eq!(snap.paused_at, Some(200));
+        // relogin not seen: "Resume now" at 500
+        let o = t.resume_manual(ME, 500);
+        assert_eq!(o, vec![TrackerOutput::SessionResumed(ME)]);
+        let s = t.session(ME).unwrap();
+        assert!(!s.is_paused());
+        assert_eq!(s.paused_secs, 300);
+        assert_eq!(t.resume_deadline(ME), None);
+        // 100 s before the logout + 100 s after the manual resume
+        assert_eq!(s.rates(600).duration_secs, 200);
+        // the old window (800) does not end it; the idle timeout counts from 500
+        assert!(t.tick(900).is_empty());
+        // nothing to resume any more
+        assert!(t.resume_manual(ME, 600).is_empty());
+        t.handle(&kill(610));
+        assert_eq!(t.session(ME).unwrap().stats.kills, 2);
+    }
+
+    #[test]
+    fn manual_end_while_paused_ends_at_logout() {
+        let mut t = tracker();
+        t.set_resume_grace(600);
+        t.handle(&session_event(true, 100));
+        t.handle(&kill(110));
+        t.handle(&session_event(false, 200));
+        // "End session" during the pause, 5 minutes after the logout
+        let s = t.stop(ME, 500).expect("session");
+        assert_eq!(s.ended_at, Some(200));
+        assert!(!s.is_paused());
+        assert_eq!(s.rates(500).duration_secs, 100);
+        assert!(t.session(ME).is_none());
+        // a running (not paused) session still ends at the given time
+        t.handle(&kill(1000));
+        assert_eq!(t.stop(ME, 1200).unwrap().ended_at, Some(1200));
+    }
+
+    #[test]
+    fn reopen_last_session_continues_with_the_same_id() {
+        use crate::store::Store;
+        let store = Store::in_memory().unwrap();
+        let mut t = tracker();
+        t.handle(&session_event(true, 100));
+        t.handle(&kill(110));
+        let o = t.handle(&session_event(false, 200));
+        let Some(TrackerOutput::SessionEnded(s)) = o.last() else {
+            panic!("session not ended: {o:?}")
+        };
+        let mut s = (**s).clone();
+        let id = store.save_session(&mut s).unwrap();
+        // later: "Resume last session" one hour after the end
+        let last = store.last_ended_session(&ME.to_string()).unwrap().unwrap();
+        assert_eq!(last.id, id);
+        let loaded = store.load_session(id, SessionConfig::default()).unwrap();
+        let o = t.reopen(loaded, 3800).unwrap();
+        assert_eq!(o, vec![TrackerOutput::SessionReopened(ME)]);
+        assert_eq!(t.focus(), Some(ME));
+        let s = t.session(ME).unwrap();
+        assert_eq!(s.id, Some(id));
+        assert_eq!(s.ended_at, None);
+        assert_eq!(s.paused_secs, 3600, "the gap is a pause, not playtime");
+        assert_eq!(s.rates(3800).duration_secs, 100);
+        // achievements of the first part are not unlocked again
+        assert_eq!(t.achievements(ME), s.achievements.as_slice());
+        // the idle timeout counts from the reopening
+        assert!(t.tick(3800 + 1700).is_empty());
+        t.handle(&kill(3850));
+        let s = t.session_mut(ME).unwrap();
+        assert_eq!(s.stats.kills, 2);
+        // saving updates the same row: no duplicate
+        assert_eq!(store.save_session(s).unwrap(), id);
+        let s = t.stop(ME, 3900).unwrap();
+        assert_eq!(s.ended_at, Some(3900));
+        assert_eq!(s.rates(3900).duration_secs, 200);
+        let mut s = s;
+        store.save_session(&mut s).unwrap();
+        let list = store.list_sessions(10, 0).unwrap();
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].id, id);
+        assert_eq!(list[0].kills, 2);
+        assert_eq!(list[0].ended_at, Some(3900));
+    }
+
+    #[test]
+    fn reopen_has_limits() {
+        let mut t = tracker();
+        let mut ended = Session::new(ME, "SampleSoldier", Some(3), 100, SessionConfig::default());
+        ended.end(200);
+        // too old
+        assert_eq!(
+            t.reopen(ended.clone(), 200 + REOPEN_MAX_SECS + 1),
+            Err(ReopenError::TooOld)
+        );
+        assert!(t.session(ME).is_none());
+        assert!(reopenable(200, 200 + REOPEN_MAX_SECS));
+        assert!(!reopenable(200, 199), "clock before the end");
+        // not ended
+        let open = Session::new(ME, "SampleSoldier", Some(3), 100, SessionConfig::default());
+        assert_eq!(t.reopen(open, 300), Err(ReopenError::NotEnded));
+        // a session is already running
+        t.start_manual(ME, 250);
+        assert_eq!(t.reopen(ended.clone(), 300), Err(ReopenError::Running));
+        // not an own character (squad member or unknown)
+        let mut other = ended.clone();
+        other.character_id = 5428000000000000077;
+        assert_eq!(t.reopen(other, 300), Err(ReopenError::NotOwn));
     }
 
     #[test]

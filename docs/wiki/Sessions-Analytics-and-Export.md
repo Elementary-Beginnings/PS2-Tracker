@@ -36,6 +36,25 @@
   15 minutes by default for a relogin and then simply goes on; the time
   logged out does not count as playtime. *Settings → Sessions → Resume after
   logout/crash* sets the window (0 = a logout ends the session at once).
+- **Session buttons on the live page.** *Start session* and *End session*
+  start and end a session by hand. While a session waits for a relogin, the
+  live page shows *Logged out – waiting for relogin (mm:ss left)* with two
+  buttons:
+  - *Resume now* continues the session at once, e.g. when the relogin was not
+    detected (no event yet). The time since the logout counts as a pause.
+  - *End session* ends it at the time of the logout – the same as when the
+    window runs out – and saves it.
+
+  Without a running session, *Resume last session* opens the most recently
+  ended session of the selected character again and keeps counting in it:
+  same entry in *History* (no copy), stats, kill feed and achievements go on,
+  and the time between the end and the click counts as a pause, not as
+  playtime. This works up to **6 hours** after the session ended – long
+  enough for a meal, a server maintenance or a crash that outlasted the
+  resume window, short enough that last night's session is not merged into
+  today's. Older sessions cannot be resumed; the button is then disabled and
+  its tooltip says why. Only your own characters (not squad members) can be
+  resumed.
 - **Achievements** as an own TOML rule set (multikill, streak, headshot series,
   revenge, vehicle kills …); own rules in `achievements.toml`
   (see [Getting Started](Getting-Started#configuration-and-data)).

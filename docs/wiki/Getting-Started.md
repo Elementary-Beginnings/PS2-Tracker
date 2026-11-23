@@ -17,7 +17,10 @@ From then on a **session starts automatically** when you log in or with your
 first kill or death, and ends at logout or after inactivity. If you log back
 in within 15 minutes (e.g. after a game crash), the same session goes on. The live page
 shows the running session; finished sessions are in *History* (see
-[Sessions, Analytics and Export](Sessions-Analytics-and-Export)).
+[Sessions, Analytics and Export](Sessions-Analytics-and-Export)). Buttons on the
+live page start and end a session by hand, resume a paused one at once, and
+open the last session again (*Resume last session*, up to 6 hours after it
+ended).
 
 Next steps: [Overlay and Move Mode](Overlay-and-Move-Mode),
 [Crosshair](Crosshair), [Voice Packs](Voice-Packs), [Hotkeys](Hotkeys).

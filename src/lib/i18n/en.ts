@@ -42,6 +42,19 @@ export const en = {
     startSession: "Start session",
     stopSession: "End session",
     stopped: "Session ended and saved",
+    stoppedAtLogout: "Session ended at the logout and saved",
+    pausedTitle: (left: string) => `Logged out – waiting for relogin (${left} left)`,
+    pausedHint:
+      "The clock is stopped. Log back in and the session goes on; when the time runs out it ends at the logout. Relogin not detected? Resume it by hand.",
+    resumeNow: "Resume now",
+    resumed: "Session resumed",
+    resumeLast: "Resume last session",
+    resumeLastHint: (ended: string, until: string) =>
+      `Opens the session that ended ${ended} again and keeps counting in it; the time in between counts as a pause. Possible until ${until}.`,
+    resumeLastTooOld: (ended: string, hours: number) =>
+      `The last session ended ${ended}; sessions can only be resumed up to ${hours} h after they ended.`,
+    resumeLastNone: "No ended session of this character yet.",
+    reopened: "Last session resumed",
     characterSelect: "Character",
     noSessionTitle: "No running session",
     noCharacterHint:

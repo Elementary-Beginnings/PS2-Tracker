@@ -1,5 +1,5 @@
 // Sample data for the browser preview only (`pnpm dev` without Tauri). Never used in the app.
-import type { Config, EssStatus, MoveLayerState, Snapshot, VoiceOverview } from "./types";
+import type { Config, EssStatus, LastSession, MoveLayerState, Snapshot, VoiceOverview } from "./types";
 
 export function demoCrosshairs() {
   const c = document.createElement("canvas");
@@ -54,7 +54,9 @@ export function demoOverview(): VoiceOverview {
 }
 
 // URL parameters of the preview: faction=1|2|3|4, theme=dark|light, page=…,
-// empty=1 (no session), wizard=1. Character names are fictitious.
+// empty=1 (no session; with last=old the last session is too old to resume),
+// paused=1 (logged out, waiting for a relogin), wizard=1. Character names are
+// fictitious.
 // clearly synthetic names (screenshots must not show real characters)
 const NAMES: Record<number, string> = { 1: "DemoSoldierVS", 2: "DemoSoldierNC", 3: "DemoSoldierTR", 4: "DemoSoldierNSO" };
 const facOf = (p?: URLSearchParams) => Number(p?.get("faction") ?? 3) || 3;
@@ -224,12 +226,24 @@ export function demoSnapshot(p?: URLSearchParams): Snapshot {
         { class: "medic", kills: 13, deaths: 6, secs: 780 },
       ],
     },
+    paused_at: p?.has("paused") ? now - 135 : null,
+    resume_until: p?.has("paused") ? now - 135 + 15 * 60 : null,
+    paused_secs: 0,
     squad_top: [
       { character_id: "11", name: "DemoMedic", faction_id: f, own: false, kills: 31, deaths: 9, value: 3.44, class: "medic" },
       { character_id: "1", name: NAMES[f] ?? "Sample", faction_id: f, own: true, kills: 42, deaths: 21, value: 2, class: "heavy_assault" },
       { character_id: "12", name: "DemoEngineer", faction_id: f, own: false, kills: 2, deaths: 1, value: 2, qualified: false, session: true, class: null },
     ],
   };
+}
+
+/** Last ended session for "Resume last session" in the preview (`?empty=1`):
+ *  ended 40 minutes ago, or 9 hours ago with `last=old` (too old). */
+export function demoLastSession(p?: URLSearchParams): LastSession {
+  const now = Math.floor(Date.now() / 1000);
+  const ended = p?.get("last") === "old" ? now - 9 * 3600 : now - 40 * 60;
+  const until = ended + 6 * 3600;
+  return { id: 1, started_at: ended - 5400, ended_at: ended, resumable: now <= until, resumable_until: until };
 }
 
 /** Move layer in the browser preview (screenshots): a 1920×1080 monitor, the

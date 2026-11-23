@@ -8,7 +8,7 @@ use ps2_tracker_core::census::CharacterInfo;
 use ps2_tracker_core::packloader::{self, PackFormat};
 use ps2_tracker_core::sessionfile;
 use ps2_tracker_core::store::{SessionSummary, export_csv, export_json};
-use ps2_tracker_core::tracker::snapshot;
+use ps2_tracker_core::tracker::{self, snapshot};
 use ps2_tracker_core::triggers::TriggerRule;
 use ps2_tracker_core::voice::Trigger;
 use ps2_tracker_core::voicepack::{self, Manifest, MappingProposal, PackMeta, VoicePack};
@@ -411,8 +411,84 @@ pub fn stop_session(app: AppHandle, st: S<'_>, character_id: String) -> R<()> {
         .stop(id, now())
         .ok_or("no running session")?;
     st.store.save_session(&mut s).map_err(e)?;
-    lock(&st.voice).detectors.remove(&id);
+    {
+        let mut v = lock(&st.voice);
+        v.detectors.remove(&id);
+        v.engines.remove(&id);
+    }
     let _ = app.emit("sessions-changed", ());
+    engine::emit_snapshot(&app);
+    Ok(())
+}
+
+/// "Resume now": continues the paused session of a character by hand (the
+/// relogin was not seen). The time since the logout counts as paused.
+#[tauri::command]
+pub fn resume_session(app: AppHandle, st: S<'_>, character_id: String) -> R<()> {
+    let id = parse_id(&character_id)?;
+    let out = lock(&st.tracker).resume_manual(id, now());
+    if out.is_empty() {
+        return Err("no paused session for this character".into());
+    }
+    engine::process_outputs(&app, out, now(), &Default::default());
+    engine::emit_snapshot(&app);
+    Ok(())
+}
+
+/// The last ended session of an own character and whether "Resume last
+/// session" may open it again.
+#[derive(Serialize)]
+pub struct LastSession {
+    id: i64,
+    started_at: i64,
+    ended_at: i64,
+    /// Ended at most `REOPEN_MAX_SECS` ago.
+    resumable: bool,
+    /// Last moment it can be opened again.
+    resumable_until: i64,
+}
+
+#[tauri::command]
+pub fn last_session(st: S<'_>, character_id: String) -> R<Option<LastSession>> {
+    let id = parse_id(&character_id)?;
+    if !lock(&st.tracker).is_own(id) {
+        return Ok(None);
+    }
+    let Some(sum) = st.store.last_ended_session(&id.to_string()).map_err(e)? else {
+        return Ok(None);
+    };
+    let Some(ended_at) = sum.ended_at else {
+        return Ok(None);
+    };
+    Ok(Some(LastSession {
+        id: sum.id,
+        started_at: sum.started_at,
+        ended_at,
+        resumable: tracker::reopenable(ended_at, now()),
+        resumable_until: ended_at + tracker::REOPEN_MAX_SECS,
+    }))
+}
+
+/// "Resume last session": opens the last ended session of an own character
+/// again and goes on counting in it (same database row, no copy). The time
+/// since its end counts as paused.
+#[tauri::command]
+pub fn reopen_session(app: AppHandle, st: S<'_>, character_id: String) -> R<()> {
+    let id = parse_id(&character_id)?;
+    let sum = st
+        .store
+        .last_ended_session(&id.to_string())
+        .map_err(e)?
+        .ok_or("no ended session for this character")?;
+    let s = st
+        .store
+        .load_session(sum.id, st.cfg().session.session_config())
+        .map_err(e)?;
+    if s.character_id != id {
+        return Err("stored session does not match the character".into());
+    }
+    let out = lock(&st.tracker).reopen(s, now()).map_err(e)?;
+    engine::process_outputs(&app, out, now(), &Default::default());
     engine::emit_snapshot(&app);
     Ok(())
 }

@@ -2,6 +2,7 @@
   import { t } from "../lib/i18n";
   import type { ClassId, FeedRow, Metric, Snapshot } from "../lib/types";
   import ClassIcon from "../lib/ClassIcon.svelte";
+  import { playtime } from "../lib/resume";
   import { clock, dateTime, delta, duration, faction, feedIcon, feedLabel, feedTone, feedWho, num, pct } from "../lib/format";
 
   let { snap, now, primaryKd = "true", showMine = false }: { snap: Snapshot; now: number; primaryKd?: string; showMine?: boolean } = $props();
@@ -18,7 +19,7 @@
   const kdRev = $derived(snap.rates.kd_revived ?? snap.rates.kd);
 
   const f = $derived(faction(snap.faction_id));
-  const dur = $derived(snap.ended_at ? snap.ended_at - snap.started_at : now - snap.started_at);
+  const dur = $derived(playtime(snap, now));
   const s = $derived(snap.stats);
   const T = t.session.tiles;
   const c = $derived(snap.comparison);

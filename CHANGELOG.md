@@ -5,6 +5,28 @@ after [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Session buttons for the resume window on the live page: while a session
+  waits for a relogin, a banner shows *Logged out – waiting for relogin* with
+  the time left, *Resume now* (continue at once, e.g. when the relogin was not
+  detected) and *End session* (ends at the time of the logout and saves).
+- *Resume last session*: without a running session, the most recently ended
+  session of the selected character can be opened again up to 6 hours after
+  it ended. It continues in the same history entry (no copy); the time in
+  between counts as a pause, not as playtime. Older sessions cannot be resumed
+  (button disabled, the reason in the tooltip).
+- New commands `resume_session`, `last_session` and `reopen_session`, allowed
+  only for the main window.
+
+### Fixed
+
+- *End session* during the resume window and quitting the app while logged
+  out end the session at the logout instead of counting the time logged out
+  as playtime.
+- The duration on the live page, in the overlay and in the session detail no
+  longer counts paused time.
+
 ### Security
 
 - Session import checks the pause times added with the resume window in 1.1.0:

@@ -4,6 +4,7 @@
   import type { FeedRow, OverlaySettings, PackBackground, Snapshot, Toast } from "../lib/types";
   import { delta, duration, faction, feedIcon, feedLabel, feedTone, feedWho, num, pct } from "../lib/format";
   import { demoSnapshot } from "../lib/demo";
+  import { playtime } from "../lib/resume";
   import { t } from "../lib/i18n";
   import ClassIcon from "../lib/ClassIcon.svelte";
 
@@ -126,7 +127,7 @@
   });
 
   const f = $derived(faction(snap?.faction_id));
-  const dur = $derived(snap ? (snap.ended_at ?? now) - snap.started_at : 0);
+  const dur = $derived(snap ? playtime(snap, now) : 0);
   const feedRows = $derived(o.compact ? 3 : 5);
   const feed = $derived(Array.from({ length: feedRows }, (_, i) => snap?.killfeed[i] ?? null));
   const weapons = $derived(Array.from({ length: 4 }, (_, i) => snap?.weapons[i] ?? null));

@@ -469,6 +469,22 @@ pub fn process_outputs(
                 }
                 let _ = app.emit("sessions-changed", ());
             }
+            TrackerOutput::SessionReopened(id) => {
+                if own.contains(&id) {
+                    let mut v = lock(&st.voice);
+                    v.detectors.insert(id, VoiceDetector::new(dcfg));
+                    v.engines.insert(id, TriggerEngine::default());
+                }
+                if let Some(s) = lock(&st.tracker).session_mut(id)
+                    && let Err(e) = st.store.save_session(s)
+                {
+                    tracing::warn!(error = %e, "session not saved");
+                }
+                if own.contains(&id) {
+                    fetch_lifetime(app, id);
+                }
+                let _ = app.emit("sessions-changed", ());
+            }
             TrackerOutput::SessionEnded(mut s) => {
                 {
                     let mut v = lock(&st.voice);
@@ -808,6 +824,7 @@ pub fn current_snapshot(st: &AppState) -> Option<SessionSnapshot> {
     let names = st.names();
     let lt = lock(&st.lifetime);
     let mut snap = tracker::snapshot(s, true, now(), &names, lt.get(&id), t.achievements(id));
+    snap.resume_until = t.resume_deadline(id);
     if let Some((metric, min_kills)) = squad {
         snap.squad_top = tracker::squad_top(&t, metric, min_kills, now());
     }

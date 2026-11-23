@@ -238,6 +238,23 @@ export interface Snapshot {
   class?: ClassId | null;
   /** Kills/deaths by enemy class and own class use (data version 4). */
   classes?: ClassStats;
+  /** Logged out, waiting for a relogin: time of the logout (null while playing). */
+  paused_at?: number | null;
+  /** End of the resume window while paused (the session then ends at `paused_at`). */
+  resume_until?: number | null;
+  /** Seconds paused so far (not playtime). */
+  paused_secs?: number;
+}
+
+/** Last ended session of an own character ("Resume last session"). */
+export interface LastSession {
+  id: number;
+  started_at: number;
+  ended_at: number;
+  /** Ended recently enough to be opened again. */
+  resumable: boolean;
+  /** Last moment it can be opened again. */
+  resumable_until: number;
 }
 
 /** One object in the move layer (physical pixels, absolute). */

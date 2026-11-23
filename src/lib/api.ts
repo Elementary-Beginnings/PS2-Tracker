@@ -8,6 +8,7 @@ import type { GameStatus, WindowEntry, PackBackground,
   FxEffect,
   Analysis,
   ImportOutcome,
+  LastSession,
   OutfitMember,
   SquadRow,
   UpdateInfo,
@@ -59,6 +60,9 @@ export const api = {
   squadRemove: (characterId: string, deleteData: boolean) => invoke<number>("squad_remove", { characterId, deleteData }),
   startSession: (characterId: string) => invoke<void>("start_session", { characterId }),
   stopSession: (characterId: string) => invoke<void>("stop_session", { characterId }),
+  resumeSession: (characterId: string) => invoke<void>("resume_session", { characterId }),
+  lastSession: (characterId: string) => invoke<LastSession | null>("last_session", { characterId }),
+  reopenSession: (characterId: string) => invoke<void>("reopen_session", { characterId }),
   overlayState: () =>
     invoke<{ edit: boolean; enabled: boolean; size_factor: number; selected: string }>("get_overlay_state"),
   overlayContentSize: (object: string, width: number, height: number) =>

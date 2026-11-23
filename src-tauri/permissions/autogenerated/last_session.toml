@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-last-session"
+description = "Enables the last_session command without any pre-configured scope."
+commands.allow = ["last_session"]
+
+[[permission]]
+identifier = "deny-last-session"
+description = "Denies the last_session command without any pre-configured scope."
+commands.deny = ["last_session"]

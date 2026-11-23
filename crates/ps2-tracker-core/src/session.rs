@@ -339,6 +339,20 @@ impl Session {
         }
     }
 
+    /// Opens an ended session again ("Resume last session"): the time between
+    /// the end and `at` counts as paused, not as playtime. `last_event_at`
+    /// moves to `at` like at a manual start, so the idle timeout counts from
+    /// the reopening. Returns false if the session was not ended.
+    pub fn reopen(&mut self, at: i64) -> bool {
+        let Some(end) = self.ended_at.take() else {
+            return false;
+        };
+        self.paused_secs += (at - end).max(0);
+        self.paused_at = None;
+        self.last_event_at = self.last_event_at.max(at);
+        true
+    }
+
     pub fn is_paused(&self) -> bool {
         self.paused_at.is_some()
     }
@@ -967,5 +981,22 @@ mod tests {
         let mut s = session();
         assert!(s.apply(&death(1, FOE, MATE, false, 1, 3)).is_empty());
         assert_eq!(s.stats, SessionStats::default());
+    }
+
+    #[test]
+    fn reopen_counts_the_gap_as_pause() {
+        let mut s = Session::new(1, "Me", None, 100, SessionConfig::default());
+        s.pause(150);
+        s.resume(170);
+        s.end(300);
+        assert_eq!(s.rates(1000).duration_secs, 180);
+        assert!(s.reopen(1000));
+        assert_eq!(s.ended_at, None);
+        assert_eq!(s.paused_secs, 20 + 700);
+        assert_eq!(s.last_event_at, 1000);
+        assert_eq!(s.rates(1060).duration_secs, 240);
+        // only an ended session can be reopened
+        assert!(!s.reopen(1100));
+        assert_eq!(s.paused_secs, 720);
     }
 }
