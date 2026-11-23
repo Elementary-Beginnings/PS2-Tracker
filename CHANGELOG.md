@@ -23,6 +23,10 @@ after [SemVer](https://semver.org/).
   lookups you wait for (adding a character or squad member, outfit search,
   saving settings) use their own queue with a 15 s timeout. The add button
   shows "Searching …" meanwhile.
+- The pack achievement pop-up could stay on screen after its display time
+  (default 4 s): it only faded to opacity 0, and with a transparent window
+  some compositors kept the last frame. The pack image and text are now
+  removed after the fade, so the window is transparent again.
 
 ## [1.0.4] – 2026-11-23
 

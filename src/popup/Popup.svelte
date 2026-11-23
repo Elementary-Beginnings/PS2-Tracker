@@ -23,6 +23,13 @@
   let root = $state<HTMLDivElement>();
   let ready = $state(false);
   let hideTimer: ReturnType<typeof setTimeout> | undefined;
+  let clearTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The pack image and the text are in the DOM only while a notification
+   *  shows. Opacity 0 alone was not enough: with a transparent window some
+   *  compositors (WebKitGTK on KDE/X11) kept the last painted frame, so the
+   *  pack design stayed on screen. Removing the image after the fade makes
+   *  the webview repaint that area as transparent. */
+  let painted = $state(false);
 
   if (demo) {
     toast = { title: "Double kill", text: "2 kills in 4 s", kind: "voice" };
@@ -54,8 +61,17 @@
   function show(x: Toast) {
     toast = x;
     shown = true;
+    painted = true;
     clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => (shown = false), Math.max(800, o.popup_duration_ms ?? 4000));
+    clearTimeout(clearTimer);
+    hideTimer = setTimeout(() => {
+      shown = false;
+      // after the 0.25 s fade
+      clearTimer = setTimeout(() => {
+        painted = false;
+        toast = null;
+      }, 300);
+    }, Math.max(800, o.popup_duration_ms ?? 4000));
   }
 
   async function load() {
@@ -95,7 +111,8 @@
   });
 
   const sample: Toast = { title: t.overlay.popupSample, text: t.overlay.popupSampleText, kind: "voice" };
-  const content = $derived(preview ? sample : edit ? null : toast);
+  const paint = $derived(preview || demo || painted);
+  const content = $derived(preview ? sample : edit || !paint ? null : toast);
   const visible = $derived(preview || (!edit && shown && !!toast));
 </script>
 
@@ -114,7 +131,7 @@
       class:on={visible}
       style:width={`${(bg.width * scale) / dpr}px`}
       style:height={`${(bg.height * scale) / dpr}px`}
-      style:background-image={`url(${bg.data_url})`}
+      style:background-image={paint ? `url(${bg.data_url})` : "none"}
       style:--op={o.popup_opacity ?? 1}
     >
       {#if o.popup_text && content}
@@ -122,7 +139,7 @@
       {/if}
     </div>
   {:else}
-    <div class="box style-{o.popup_style ?? 'plain'}" class:on={visible} style:--op={o.popup_opacity ?? 1}>
+    <div class="box style-{o.popup_style ?? 'plain'}" class:on={visible} class:paint style:--op={o.popup_opacity ?? 1}>
       {#if content}<div class="txt"><strong>{content.title}</strong>{#if content.text}<span>{content.text}</span>{/if}</div>{/if}
     </div>
   {/if}
@@ -165,7 +182,7 @@
     width: 22em;
     height: 3.6em;
   }
-  .box.style-card {
+  .box.style-card.paint {
     background: rgb(15 18 24 / 85%);
     border: 1px solid rgb(255 255 255 / 15%);
     border-radius: 12px;
