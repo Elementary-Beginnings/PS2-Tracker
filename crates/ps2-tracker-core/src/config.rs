@@ -51,6 +51,8 @@ pub struct Config {
     pub discord: crate::presence::DiscordSettings,
     /// In-app updates (AppImage/Windows only; off by default).
     pub updates: UpdateSettings,
+    /// Online sync to the ELME stats server (off by default, opt-in).
+    pub online_sync: crate::online_sync::SyncSettings,
     pub overlay: OverlaySettings,
     pub voice: VoiceSettings,
     pub crosshair: CrosshairSettings,
@@ -539,6 +541,9 @@ impl Config {
             ));
         }
         self.discord.validate().map_err(ConfigError::Invalid)?;
+        self.online_sync
+            .validate()
+            .map_err(|e| ConfigError::Invalid(format!("online sync: {e}")))?;
         if self.squad.len() > MAX_SQUAD {
             return Err(ConfigError::Invalid(format!(
                 "at most {MAX_SQUAD} squad members"
