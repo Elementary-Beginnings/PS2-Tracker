@@ -1,0 +1,38 @@
+[workspace]
+resolver = "3"
+members = ["crates/ps2-tracker-core", "src-tauri"]
+
+[workspace.package]
+version = "1.0.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace.dependencies]
+directories = "6.0.0"
+futures-util = { version = "0.3.34", default-features = false, features = ["sink", "std"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["json", "query", "rustls"] }
+rusqlite = { version = "0.43.0", features = ["bundled"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "sync", "time", "net"] }
+tokio-tungstenite = { version = "0.30.0", features = ["rustls-tls-webpki-roots"] }
+toml = "1.2.1"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
+csv = "1.4.0"
+
+[workspace.lints.rust]
+# denied everywhere; the only exception is src-tauri/src/win_console.rs
+# (Win32 console and cursor clip), checked by a test in console.rs
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

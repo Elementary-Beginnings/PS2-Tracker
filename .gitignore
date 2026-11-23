@@ -1,0 +1,27 @@
+# Build
+/target/
+/dist/
+/node_modules/
+/src-tauri/gen/
+/packaging/arch/pkg/
+/packaging/arch/src/
+*.AppImage
+*.pkg.tar.zst
+*.tmxplug
+
+# Lokale Konfiguration und Geheimnisse – Service-ID gehört nicht ins Repo
+.env
+.env.*
+!.env.example
+config.toml
+!packaging/**/config.toml
+*.sqlite3
+*.sqlite3-*
+
+# Screenshots aus lokalen Testläufen
+/screenshots/
+
+# Editor
+.idea/
+.vscode/
+*.swp

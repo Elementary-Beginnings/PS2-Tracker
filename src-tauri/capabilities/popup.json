@@ -1,0 +1,15 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "popup",
+  "description": "Achievement/voice pack pop-up: read only; reports its size (moved through the move layer)",
+  "windows": [
+    "popup"
+  ],
+  "permissions": [
+    "core:event:default",
+    "allow-get-config",
+    "allow-toast-background",
+    "allow-get-overlay-state",
+    "allow-overlay-content-size"
+  ]
+}

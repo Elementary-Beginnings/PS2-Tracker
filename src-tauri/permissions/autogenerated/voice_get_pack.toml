@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-voice-get-pack"
+description = "Enables the voice_get_pack command without any pre-configured scope."
+commands.allow = ["voice_get_pack"]
+
+[[permission]]
+identifier = "deny-voice-get-pack"
+description = "Denies the voice_get_pack command without any pre-configured scope."
+commands.deny = ["voice_get_pack"]

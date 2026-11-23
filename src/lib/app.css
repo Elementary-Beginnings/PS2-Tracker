@@ -1,0 +1,365 @@
+/* PS2 Session Tracker – base styles. No external fonts (CSP, offline). */
+:root {
+  color-scheme: dark;
+  --bg: #0f1218;
+  --bg-2: #151a22;
+  --panel: #1a202a;
+  --panel-2: #212835;
+  --line: #2b3342;
+  --text: #e7e9ee;
+  --muted: #9aa3b4;
+  /* neutral accent; App.svelte switches it to the faction colour (theme.ts) */
+  --accent: #4fc3c9;
+  --accent-ink: #0b1014;
+  /* colour-blind safe pair (blue/orange), always shown with ▲/▼ and a sign */
+  --good: #62b4ff;
+  --bad: #ffa557;
+  --warn: #e9b949;
+  --danger: #ff6b6b;
+  /* kill feed: kill green, death orange, own headshot cyan, headshot taken coral */
+  --kill: #5fd99a;
+  --death: #ffa557;
+  --tk: #e9b949;
+  --hs: #7fd4ff;
+  --hs-taken: #ff8a65;
+  --s1: 8px;
+  --s2: 16px;
+  --s3: 24px;
+  --s4: 32px;
+  --radius: 10px;
+  --font: "Inter", "Noto Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", "Noto Sans Mono", ui-monospace, monospace;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f4f7;
+  --bg-2: #e9ecf1;
+  --panel: #ffffff;
+  --panel-2: #f5f6f9;
+  --line: #d9dde5;
+  --text: #1a1f29;
+  --muted: #5a6372;
+  --accent: #0b6f78;
+  --accent-ink: #ffffff;
+  --good: #1a5fb4;
+  --bad: #a34a00;
+  --warn: #8a5a00;
+  --danger: #b0262c;
+  --kill: #1b7a3d;
+  --death: #a34a00;
+  --tk: #8a5a00;
+  --hs: #0b5fa5;
+  --hs-taken: #b8341b;
+}
+
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] {
+    color-scheme: light;
+    --bg: #f3f4f7;
+    --bg-2: #e9ecf1;
+    --panel: #ffffff;
+    --panel-2: #f5f6f9;
+    --line: #d9dde5;
+    --text: #1a1f29;
+    --muted: #5a6372;
+    --accent: #0b6f78;
+    --accent-ink: #ffffff;
+    --good: #1a5fb4;
+    --bad: #a34a00;
+    --warn: #8a5a00;
+    --danger: #b0262c;
+    --kill: #1b7a3d;
+    --death: #a34a00;
+    --tk: #8a5a00;
+    --hs: #0b5fa5;
+    --hs-taken: #b8341b;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.45 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 0.6rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+h1 {
+  font-size: 1.35rem;
+}
+h2 {
+  font-size: 1.05rem;
+}
+h3 {
+  font-size: 0.92rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+}
+
+.grid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.muted {
+  color: var(--muted);
+}
+.small {
+  font-size: 0.85em;
+}
+.mono {
+  font-family: var(--mono);
+}
+.good {
+  color: var(--good);
+}
+.bad {
+  color: var(--bad);
+}
+
+button {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.42rem 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+button:hover {
+  border-color: var(--muted);
+}
+button.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: transparent;
+  font-weight: 600;
+}
+button.danger {
+  color: var(--danger);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+}
+input[type="checkbox"],
+input[type="range"] {
+  accent-color: var(--accent);
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+label.field {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+label.check {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th,
+td {
+  text-align: left;
+  padding: 0.38rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+th {
+  color: var(--muted);
+  font-weight: 550;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+td.num,
+th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+}
+
+.hint {
+  border-left: 3px solid var(--accent);
+  background: var(--panel-2);
+  padding: 0.6rem 0.8rem;
+  border-radius: 0 8px 8px 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+/* keep form controls inside their card */
+.card,
+.grid > * {
+  min-width: 0;
+}
+label.field > input:not([type="checkbox"]):not([type="number"]):not([type="color"]),
+label.field > select {
+  width: 100%;
+  min-width: 0;
+}
+
+/* ---- v2 helpers ---- */
+.num,
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px var(--s1);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+}
+.chip.up {
+  color: var(--good);
+}
+.chip.down {
+  color: var(--bad);
+}
+.tabs {
+  display: flex;
+  gap: var(--s1);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--s2);
+}
+.tabs button {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: var(--s1) var(--s2);
+  color: var(--muted);
+}
+.tabs button[aria-selected="true"] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+details.more > summary,
+details.section > summary {
+  cursor: pointer;
+  color: var(--muted);
+  list-style: none;
+}
+details.section > summary::before {
+  content: "▸ ";
+}
+details.section[open] > summary::before {
+  content: "▾ ";
+}
+details.menu {
+  position: relative;
+}
+details.menu > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 4px var(--s1);
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+details.menu > summary::-webkit-details-marker,
+details.section > summary::-webkit-details-marker {
+  display: none;
+}
+details.menu > .items {
+  position: absolute;
+  right: 0;
+  z-index: 20;
+  display: grid;
+  min-width: 180px;
+  margin-top: 4px;
+  padding: 4px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+}
+details.menu > .items button {
+  text-align: left;
+  border: none;
+  background: transparent;
+}
+details.menu > .items button:hover {
+  background: var(--panel);
+}
+.empty-state {
+  display: grid;
+  justify-items: start;
+  gap: var(--s1);
+  padding: var(--s3);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+button.mini {
+  padding: 2px var(--s1);
+  font-size: 0.82rem;
+}

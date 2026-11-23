@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-voice-new-pack"
+description = "Enables the voice_new_pack command without any pre-configured scope."
+commands.allow = ["voice_new_pack"]
+
+[[permission]]
+identifier = "deny-voice-new-pack"
+description = "Denies the voice_new_pack command without any pre-configured scope."
+commands.deny = ["voice_new_pack"]

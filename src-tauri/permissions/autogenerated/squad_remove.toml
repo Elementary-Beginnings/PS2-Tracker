@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-squad-remove"
+description = "Enables the squad_remove command without any pre-configured scope."
+commands.allow = ["squad_remove"]
+
+[[permission]]
+identifier = "deny-squad-remove"
+description = "Denies the squad_remove command without any pre-configured scope."
+commands.deny = ["squad_remove"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crosshair-fx-preview"
+description = "Enables the crosshair_fx_preview command without any pre-configured scope."
+commands.allow = ["crosshair_fx_preview"]
+
+[[permission]]
+identifier = "deny-crosshair-fx-preview"
+description = "Denies the crosshair_fx_preview command without any pre-configured scope."
+commands.deny = ["crosshair_fx_preview"]

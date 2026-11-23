@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-voice-clear-override"
+description = "Enables the voice_clear_override command without any pre-configured scope."
+commands.allow = ["voice_clear_override"]
+
+[[permission]]
+identifier = "deny-voice-clear-override"
+description = "Denies the voice_clear_override command without any pre-configured scope."
+commands.deny = ["voice_clear_override"]

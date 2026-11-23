@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-voice-overview"
+description = "Enables the voice_overview command without any pre-configured scope."
+commands.allow = ["voice_overview"]
+
+[[permission]]
+identifier = "deny-voice-overview"
+description = "Denies the voice_overview command without any pre-configured scope."
+commands.deny = ["voice_overview"]

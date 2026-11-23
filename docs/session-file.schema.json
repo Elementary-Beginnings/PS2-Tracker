@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ps2-tracker:session-file:1",
+  "title": "PS2 Session Tracker – session file (format version 1)",
+  "description": "Written by \"Export JSON\" and embedded in \"Export Excel\" (customXml/ps2-tracker-session.xml, base64). Read by \"Import session…\". Character IDs are 64-bit and exceed JavaScript's safe integers; readers should parse them as strings or 64-bit integers.",
+  "type": "object",
+  "required": ["format", "version", "generator", "session"],
+  "properties": {
+    "format": { "const": "ps2-tracker-session" },
+    "version": { "type": "integer", "minimum": 1, "maximum": 1 },
+    "generator": { "type": "string", "description": "e.g. \"ps2-tracker 0.2.0\"" },
+    "rates": {
+      "description": "Derived values at export time; ignored on import.",
+      "type": "object",
+      "properties": {
+        "duration_secs": { "type": "integer" },
+        "kd": { "type": "number" },
+        "kd_revived": { "type": "number", "description": "kills / max(1, deaths - revived_deaths)" },
+        "kpm": { "type": "number" },
+        "hsr": { "type": "number" },
+        "xp_per_hour": { "type": "number" }
+      }
+    },
+    "names": {
+      "description": "Names for the IDs in the session, so it is readable on another computer.",
+      "type": "object",
+      "properties": {
+        "characters": { "type": "object", "additionalProperties": { "type": "string", "maxLength": 128 } },
+        "items": { "type": "object", "additionalProperties": { "type": "string", "maxLength": 128 } },
+        "vehicles": { "type": "object", "additionalProperties": { "type": "string", "maxLength": 128 } }
+      }
+    },
+    "session": {
+      "type": "object",
+      "required": ["character_id", "character_name", "started_at", "last_event_at", "stats", "weapons", "vehicle_kills_by_type", "timeline"],
+      "properties": {
+        "character_id": { "type": "integer", "minimum": 1 },
+        "character_name": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "faction_id": { "type": ["integer", "null"], "description": "1 VS, 2 NC, 3 TR, 4 NSO" },
+        "started_at": { "type": "integer", "description": "Unix seconds, not before November 2012" },
+        "ended_at": { "type": ["integer", "null"] },
+        "last_event_at": { "type": "integer" },
+        "data_version": { "type": "integer", "minimum": 0, "maximum": 4, "description": "0/1 = recorded before 0.2.0 (no events, xp_by_minute, achievements, team); 3 = plus world_id/zone_id; 4 = plus loadouts (classes)" },
+        "world_id": { "type": ["integer", "null"], "description": "last server (Census world_id), data version 3" },
+        "zone_id": { "type": ["integer", "null"], "description": "last continent (zone definition, lower 16 bits of zone_id), data version 3" },
+        "loadout_id": { "type": ["integer", "null"], "description": "last own loadout (Census loadout_id → class), data version 4" },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "kills": { "type": "integer" }, "deaths": { "type": "integer" }, "headshots": { "type": "integer" },
+            "teamkills": { "type": "integer" }, "teamkilled": { "type": "integer" }, "suicides": { "type": "integer" },
+            "revives": { "type": "integer" }, "revived": { "type": "integer" }, "revived_deaths": { "type": "integer" },
+            "assists": { "type": "integer" }, "xp": { "type": "integer" }, "vehicle_kills": { "type": "integer" },
+            "vehicles_lost": { "type": "integer" }, "facility_captures": { "type": "integer" }, "facility_defends": { "type": "integer" }
+          }
+        },
+        "weapons": {
+          "type": "object",
+          "description": "weapon (item) ID → counts",
+          "additionalProperties": {
+            "type": "object",
+            "properties": { "kills": { "type": "integer" }, "headshots": { "type": "integer" }, "deaths_by": { "type": "integer" } }
+          }
+        },
+        "vehicle_kills_by_type": { "type": "object", "additionalProperties": { "type": "integer" } },
+        "best_streak": { "type": "integer" },
+        "timeline": { "type": "array", "maxItems": 200000, "items": { "$ref": "#/$defs/entry" } },
+        "events": { "type": "array", "maxItems": 200000, "items": { "$ref": "#/$defs/entry" } },
+        "xp_by_minute": { "type": "object", "description": "minute since start → XP", "additionalProperties": { "type": "integer" } },
+        "achievements": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "timestamp"],
+            "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "description": { "type": "string" }, "timestamp": { "type": "integer" } }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "required": ["timestamp", "type"],
+      "description": "One outcome; further fields depend on type (victim, killer, weapon_id, vehicle_id, headshot, owner, attacker, target, by, facility_id, battle_rank, count).",
+      "properties": {
+        "timestamp": { "type": "integer" },
+        "type": {
+          "enum": ["kill", "death", "teamkill", "teamkilled", "suicide", "vehicle_kill", "vehicle_lost", "revive", "revived", "assist", "streak", "streak_ended", "facility_capture", "facility_defend", "battle_rank_up", "login", "logout"]
+        },
+        "team": { "type": "integer", "description": "team of the other party (data version 2)" },
+        "other_loadout": { "type": "integer", "description": "loadout of the other party (kill: victim, death: attacker), Census loadout_id, data version 4" },
+        "my_loadout": { "type": "integer", "description": "own loadout at the time, Census loadout_id, data version 4" }
+      }
+    }
+  }
+}

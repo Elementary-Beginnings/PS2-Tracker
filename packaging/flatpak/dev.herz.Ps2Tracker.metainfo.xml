@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.herz.Ps2Tracker</id>
+  <name>PS2 Session Tracker</name>
+  <summary>Session stats, overlay and crosshair for PlanetSide 2</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT OR Apache-2.0</project_license>
+  <developer id="dev.herz">
+    <name>Maximilian Herz</name>
+  </developer>
+  <description>
+    <p>
+      Tracks your PlanetSide 2 sessions live: kills, deaths, K/D, KPM, headshot rate,
+      streaks and a comparison with your lifetime stats. Adds an overlay window, a
+      pixel-exact crosshair and voice packs (including Recursion packs).
+    </p>
+    <p>
+      All game data comes from the public Daybreak Census API. The tracker never touches
+      the game: no injection, no hooks, no memory reading.
+    </p>
+  </description>
+  <launchable type="desktop-id">dev.herz.Ps2Tracker.desktop</launchable>
+  <url type="homepage">https://github.com/Elementary-Beginnings/ps2-tracker</url>
+  <url type="bugtracker">https://github.com/Elementary-Beginnings/ps2-tracker/issues</url>
+  <url type="vcs-browser">https://github.com/Elementary-Beginnings/ps2-tracker</url>
+  <categories>
+    <category>Game</category>
+    <category>Utility</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Live session</caption>
+      <image>https://raw.githubusercontent.com/Elementary-Beginnings/ps2-tracker/main/docs/screenshots/live-nc.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Voice packs</caption>
+      <image>https://raw.githubusercontent.com/Elementary-Beginnings/ps2-tracker/main/docs/screenshots/sounds-packs.png</image>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="1.0.0" date="2026-11-22">
+      <description>
+        <p>See CHANGELOG.md for the changes in 1.0.0.</p>
+      </description>
+    </release>
+    <release version="0.2.0" date="2026-11-22">
+      <description>
+        <p>Binary Recursion packs, one sound event system, pack removal, overlay v2 with anchored positioning, Windows and Flatpak builds.</p>
+      </description>
+    </release>
+    <release version="0.1.0" date="2026-11-21">
+      <description>
+        <p>First release: live stats, overlay, crosshair, voice packs (open format and all three Recursion variants).</p>
+      </description>
+    </release>
+  </releases>
+  <requires>
+    <display_length compare="ge">960</display_length>
+  </requires>
+</component>

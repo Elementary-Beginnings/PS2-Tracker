@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-voice-preview-event"
+description = "Enables the voice_preview_event command without any pre-configured scope."
+commands.allow = ["voice_preview_event"]
+
+[[permission]]
+identifier = "deny-voice-preview-event"
+description = "Denies the voice_preview_event command without any pre-configured scope."
+commands.deny = ["voice_preview_event"]

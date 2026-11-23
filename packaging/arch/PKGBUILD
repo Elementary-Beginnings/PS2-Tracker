@@ -1,0 +1,47 @@
+# PKGBUILD for CachyOS/Arch – builds from the repository this file is in.
+#   cd packaging/arch && makepkg -si
+pkgname=ps2-tracker
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Session stats, overlay, crosshair and voice packs for PlanetSide 2 (Census API only, never touches the game)"
+arch=('x86_64')
+url="https://github.com/Elementary-Beginnings/ps2-tracker"
+license=('MIT OR Apache-2.0')
+depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator' 'alsa-lib' 'librsvg' 'hicolor-icon-theme')
+optdepends=('pipewire-alsa: sound under PipeWire via ALSA (otherwise the app stays silent)')
+makedepends=('rust' 'nodejs' 'pnpm' 'git')
+options=('!lto' '!debug')
+source=()
+sha256sums=()
+
+_repo() {
+  realpath "$startdir/../.."
+}
+
+build() {
+  cd "$(_repo)"
+  export CARGO_TARGET_DIR="$srcdir/target"
+  pnpm install --frozen-lockfile
+  pnpm tauri build --no-bundle
+}
+
+check() {
+  cd "$(_repo)"
+  export CARGO_TARGET_DIR="$srcdir/target"
+  cargo test --workspace --release --locked
+}
+
+package() {
+  local repo
+  repo="$(_repo)"
+  install -Dm755 "$srcdir/target/release/ps2-tracker" "$pkgdir/usr/bin/ps2-tracker"
+  install -Dm644 "$repo/packaging/ps2-tracker.desktop" "$pkgdir/usr/share/applications/ps2-tracker.desktop"
+  install -Dm644 "$repo/src-tauri/icons/128x128.png" "$pkgdir/usr/share/icons/hicolor/128x128/apps/ps2-tracker.png"
+  install -Dm644 "$repo/src-tauri/icons/128x128@2x.png" "$pkgdir/usr/share/icons/hicolor/256x256/apps/ps2-tracker.png"
+  install -Dm644 "$repo/src-tauri/icons/32x32.png" "$pkgdir/usr/share/icons/hicolor/32x32/apps/ps2-tracker.png"
+  install -Dm644 "$repo/packaging/kde/ps2-tracker.kwinrule" "$pkgdir/usr/share/ps2-tracker/ps2-tracker.kwinrule"
+  install -Dm644 "$repo/crates/ps2-tracker-core/assets/triggers.default.toml" "$pkgdir/usr/share/ps2-tracker/triggers.default.toml"
+  install -Dm644 "$repo/crates/ps2-tracker-core/assets/achievements.default.toml" "$pkgdir/usr/share/ps2-tracker/achievements.default.toml"
+  # package-managed install: the in-app updater stays off
+  install -Dm644 /dev/null "$pkgdir/usr/share/ps2-tracker/package-managed"
+}

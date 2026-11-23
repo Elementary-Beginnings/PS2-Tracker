@@ -1,0 +1,20 @@
+[Desktop Entry]
+Type=Application
+Name=PS2 Session Tracker
+GenericName=Session stats and overlay for PlanetSide 2
+Comment=Session stats, overlay, crosshair and voice packs (Census API only, never touches the game)
+Exec=ps2-tracker
+Icon=dev.herz.Ps2Tracker
+Terminal=false
+Categories=Game;
+Keywords=PlanetSide;Census;Overlay;Crosshair;Stats;
+StartupWMClass=ps2-tracker
+Actions=ToggleOverlay;ToggleCrosshair;
+
+[Desktop Action ToggleOverlay]
+Name=Toggle overlay
+Exec=ps2-tracker --toggle-overlay
+
+[Desktop Action ToggleCrosshair]
+Name=Toggle crosshair
+Exec=ps2-tracker --toggle-crosshair

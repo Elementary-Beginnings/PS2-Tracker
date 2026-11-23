@@ -1,0 +1,17 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "overlay",
+  "description": "Overlay: read only; reports the size of its content (it is positioned from the main window and the move layer)",
+  "windows": [
+    "overlay"
+  ],
+  "permissions": [
+    "core:event:default",
+    "allow-get-snapshot",
+    "allow-get-config",
+    "allow-toast-background",
+    "allow-get-overlay-state",
+    "allow-overlay-content-size",
+    "allow-class-icons"
+  ]
+}

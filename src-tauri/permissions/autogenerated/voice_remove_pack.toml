@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-voice-remove-pack"
+description = "Enables the voice_remove_pack command without any pre-configured scope."
+commands.allow = ["voice_remove_pack"]
+
+[[permission]]
+identifier = "deny-voice-remove-pack"
+description = "Denies the voice_remove_pack command without any pre-configured scope."
+commands.deny = ["voice_remove_pack"]

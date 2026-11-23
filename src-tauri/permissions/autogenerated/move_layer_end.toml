@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-move-layer-end"
+description = "Enables the move_layer_end command without any pre-configured scope."
+commands.allow = ["move_layer_end"]
+
+[[permission]]
+identifier = "deny-move-layer-end"
+description = "Denies the move_layer_end command without any pre-configured scope."
+commands.deny = ["move_layer_end"]

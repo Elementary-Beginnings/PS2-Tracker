@@ -1,0 +1,26 @@
+# Maintainer: Maximilian Herz
+# AUR package ps2-tracker-bin: the prebuilt Linux binary of a tagged release.
+# Version and checksum are filled in by tools/aur_update.sh (release workflow).
+# Building from source instead: packaging/arch/PKGBUILD in the repository.
+pkgname=ps2-tracker-bin
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Session stats, overlay, crosshair and voice packs for PlanetSide 2 (Census API only, never touches the game)"
+arch=('x86_64')
+url="https://github.com/Elementary-Beginnings/ps2-tracker"
+license=('MIT OR Apache-2.0')
+depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator' 'alsa-lib' 'librsvg' 'hicolor-icon-theme')
+optdepends=('pipewire-alsa: sound under PipeWire via ALSA (otherwise the app stays silent)')
+provides=('ps2-tracker')
+conflicts=('ps2-tracker')
+options=('!strip' '!debug')
+source=("ps2-tracker-${pkgver}-x86_64-linux.tar.gz::${url}/releases/download/v${pkgver}/ps2-tracker-x86_64-linux.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+  cd "$srcdir/ps2-tracker"
+  cp -a usr "$pkgdir/"
+  install -Dm644 LICENSE-MIT "$pkgdir/usr/share/licenses/$pkgname/LICENSE-MIT"
+  install -Dm644 LICENSE-APACHE "$pkgdir/usr/share/licenses/$pkgname/LICENSE-APACHE"
+  install -Dm644 THIRD-PARTY-NOTICES.md "$pkgdir/usr/share/licenses/$pkgname/THIRD-PARTY-NOTICES.md"
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-service-id-source"
+description = "Enables the service_id_source command without any pre-configured scope."
+commands.allow = ["service_id_source"]
+
+[[permission]]
+identifier = "deny-service-id-source"
+description = "Denies the service_id_source command without any pre-configured scope."
+commands.deny = ["service_id_source"]

@@ -1,0 +1,22 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "movelayer",
+  "description": "Move layer: draws the overlay objects, reports drags and the bar buttons",
+  "windows": [
+    "movelayer"
+  ],
+  "permissions": [
+    "core:event:default",
+    "allow-get-config",
+    "allow-get-snapshot",
+    "allow-toast-background",
+    "allow-get-overlay-state",
+    "allow-move-layer-state",
+    "allow-move-layer-set",
+    "allow-move-layer-select",
+    "allow-move-layer-end",
+    "allow-move-layer-reset",
+    "allow-move-layer-monitor",
+    "allow-move-layer-activity"
+  ]
+}

@@ -1,0 +1,476 @@
+# Trigger conditions for sound events (PS2 Session Tracker).
+#
+# Each rule maps an event (our own ID or a Recursion key) to a condition derived
+# from ESS data. All conditions are OUR OWN definitions - a Recursion pack only
+# contains keys and files, no conditions. Keys without a rule have "no trigger
+# yet" and never fire.
+#
+# Custom rules: copy this file to $XDG_CONFIG_HOME/ps2-tracker/triggers.toml and
+# edit it; if that file exists, it replaces this rule set completely.
+#
+# on = base fact from the ESS data:
+#   kill            kill (headshot, roadkill, weapon_category, vehicle = attacker's vehicle)
+#   first_kill      first kill of the session
+#   multikill       kill chain, count = length (gap <= multikill window)
+#   headshot_streak headshot kills in a row, count = length
+#   repeat_victim   repeated kill on the same enemy, count = number in the session
+#   revenge         kill on the character who killed you last
+#   mutual          mutual kill with the same enemy within 3 s
+#   streak          kill streak reaches count (step in the session settings)
+#   streak_ended    own streak (>= step) ended by a death
+#   death           death by an enemy
+#   nemesis         death by the same enemy, count = number in the session
+#   death_streak    deaths without an own kill in between, count = number
+#   suicide, teamkill, teamkilled, revive, revived
+#   vehicle_kill    vehicle destroyed (vehicle = vehicle name from Census)
+#   achievement, login, session_start
+#
+# Filters (optional): count (exact), min_count, headshot, roadkill,
+#   weapon_category (Census weapon category), vehicle (vehicle names),
+#   session_count (fires on the n-th match of the rule in a session).
+# priority 0-100: more important sounds interrupt less important ones.
+
+# ---------------------------------------------------------------- own events
+[[trigger]]
+event = "kill"
+on = "kill"
+headshot = false
+priority = 10
+description = "Kill without headshot"
+
+[[trigger]]
+event = "headshot"
+on = "kill"
+headshot = true
+priority = 25
+description = "Kill with headshot"
+
+[[trigger]]
+event = "multikill"
+on = "multikill"
+priority = 70
+description = "Kill chain (>= 2 kills within the multikill window)"
+
+[[trigger]]
+event = "streak"
+on = "streak"
+priority = 60
+description = "Kill streak milestone"
+
+[[trigger]]
+event = "streak_ended"
+on = "streak_ended"
+priority = 45
+description = "Own streak ended by a death"
+
+[[trigger]]
+event = "death"
+on = "death"
+priority = 40
+description = "Death by an enemy"
+
+[[trigger]]
+event = "suicide"
+on = "suicide"
+priority = 45
+description = "Suicide"
+
+[[trigger]]
+event = "teamkill"
+on = "teamkill"
+priority = 55
+description = "Teamkill committed"
+
+[[trigger]]
+event = "teamkilled"
+on = "teamkilled"
+priority = 50
+description = "Teamkilled"
+
+[[trigger]]
+event = "revive"
+on = "revive"
+priority = 30
+description = "Revive given"
+
+[[trigger]]
+event = "revived"
+on = "revived"
+priority = 30
+description = "Revived"
+
+[[trigger]]
+event = "revenge"
+on = "revenge"
+priority = 65
+description = "Kill on your last killer"
+
+[[trigger]]
+event = "nemesis"
+on = "nemesis"
+min_count = 3
+priority = 60
+description = "At least the 3rd death by the same enemy"
+
+[[trigger]]
+event = "vehicle_kill"
+on = "vehicle_kill"
+priority = 50
+description = "Vehicle destroyed"
+
+[[trigger]]
+event = "achievement"
+on = "achievement"
+priority = 80
+description = "Own achievement unlocked"
+
+[[trigger]]
+event = "login"
+on = "login"
+priority = 20
+description = "Logged in to the game"
+
+[[trigger]]
+event = "session_start"
+on = "session_start"
+priority = 20
+description = "Session started"
+
+# ---------------------------------------------------------------- Recursion keys
+[[trigger]]
+event = "HEAD_SHOT"
+on = "kill"
+headshot = true
+priority = 25
+description = "Kill with headshot"
+
+[[trigger]]
+event = "ROAD_KILL"
+on = "kill"
+roadkill = true
+priority = 55
+description = "Kill from a vehicle without a weapon (attacker_weapon_id 0, attacker_vehicle_id set)"
+
+[[trigger]]
+event = "FIRST_BLOOD"
+on = "first_kill"
+priority = 55
+description = "First kill of the session"
+
+[[trigger]]
+event = "KNIFE_FIGHT"
+on = "kill"
+weapon_category = ["Knife"]
+priority = 50
+description = "Kill with a weapon of Census category \"Knife\""
+
+[[trigger]]
+event = "TEAM_KILLER"
+on = "teamkill"
+priority = 55
+description = "Teamkill committed"
+
+[[trigger]]
+event = "REVENGE"
+on = "revenge"
+priority = 65
+description = "Kill on your last killer"
+
+[[trigger]]
+event = "MUTUAL"
+on = "mutual"
+priority = 60
+description = "Mutual kill with the same enemy within 3 s"
+
+[[trigger]]
+event = "REPEAT_CUSTOMER"
+on = "repeat_victim"
+count = 2
+priority = 40
+description = "2nd kill on the same enemy in the session"
+
+[[trigger]]
+event = "DOMINATION"
+on = "repeat_victim"
+count = 4
+priority = 55
+description = "4th kill on the same enemy in the session"
+
+[[trigger]]
+event = "BEING_FARMED"
+on = "nemesis"
+count = 3
+priority = 55
+description = "3rd death by the same enemy in the session"
+
+[[trigger]]
+event = "DEATH_STREAK"
+on = "death_streak"
+count = 5
+priority = 45
+description = "5 deaths without an own kill in between"
+
+[[trigger]]
+event = "ACE"
+on = "vehicle_kill"
+vehicle = ["Mosquito", "Reaver", "Scythe", "Dervish", "Liberator", "Galaxy", "Valkyrie"]
+session_count = 5
+priority = 70
+description = "5th aircraft destroyed in the session"
+
+[[trigger]]
+event = "KILLING_SPREE"
+on = "streak"
+count = 5
+priority = 60
+description = "Kill streak 5"
+
+[[trigger]]
+event = "DOMINATING"
+on = "streak"
+count = 10
+priority = 62
+description = "Kill streak 10"
+
+[[trigger]]
+event = "UNSTOPPABLE"
+on = "streak"
+count = 15
+priority = 64
+description = "Kill streak 15"
+
+[[trigger]]
+event = "WICKED_SICK"
+on = "streak"
+count = 20
+priority = 66
+description = "Kill streak 20"
+
+[[trigger]]
+event = "GOD_LIKE"
+on = "streak"
+count = 25
+priority = 68
+description = "Kill streak 25"
+
+# Kill chain, "Unreal" style (Double/Triple/Multi/Mega …): the default when no
+# active pack has EXCELLENT.
+[[trigger]]
+event = "DOUBLE_KILL"
+on = "multikill"
+chain_style = "unreal"
+count = 2
+priority = 70
+description = "Kill chain of 2"
+
+[[trigger]]
+event = "TRIPLE_KILL"
+on = "multikill"
+chain_style = "unreal"
+count = 3
+priority = 72
+description = "Kill chain of 3"
+
+[[trigger]]
+event = "MULTI_KILL"
+on = "multikill"
+chain_style = "unreal"
+count = 4
+priority = 74
+description = "Kill chain of 4"
+
+[[trigger]]
+event = "MEGA_KILL"
+on = "multikill"
+chain_style = "unreal"
+count = 5
+priority = 76
+description = "Kill chain of 5"
+
+[[trigger]]
+event = "ULTRA_KILL"
+on = "multikill"
+chain_style = "unreal"
+count = 6
+priority = 78
+description = "Kill chain of 6"
+
+[[trigger]]
+event = "MONSTER_KILL"
+on = "multikill"
+chain_style = "unreal"
+count = 7
+priority = 80
+description = "Kill chain of 7"
+
+[[trigger]]
+event = "LUDICROUS_KILL"
+on = "multikill"
+chain_style = "unreal"
+count = 8
+priority = 82
+description = "Kill chain of 8"
+
+[[trigger]]
+event = "HOLY_SHIT"
+on = "multikill"
+chain_style = "unreal"
+count = 9
+priority = 84
+description = "Kill chain of 9"
+
+[[trigger]]
+event = "HOLY_SHIT_2"
+on = "multikill"
+chain_style = "unreal"
+min_count = 10
+priority = 86
+description = "Kill chain of 10 or more"
+
+# Kill chain, "Recursion classic" style: 2 → EXCELLENT, 3 → OUTSTANDING,
+# 4 → SUPERB, then the multikill series. From the user's memory of Recursion,
+# not documented. Active with voice.chain_style = "classic" (or "auto" when an
+# active pack has EXCELLENT); same window as the multikill window.
+[[trigger]]
+event = "EXCELLENT"
+on = "multikill"
+chain_style = "classic"
+count = 2
+priority = 70
+description = "Kill chain of 2"
+
+[[trigger]]
+event = "OUTSTANDING"
+on = "multikill"
+chain_style = "classic"
+count = 3
+priority = 72
+description = "Kill chain of 3"
+
+[[trigger]]
+event = "SUPERB"
+on = "multikill"
+chain_style = "classic"
+count = 4
+priority = 74
+description = "Kill chain of 4"
+
+[[trigger]]
+event = "MULTI_KILL"
+on = "multikill"
+chain_style = "classic"
+count = 5
+priority = 76
+description = "Kill chain of 5"
+
+[[trigger]]
+event = "MEGA_KILL"
+on = "multikill"
+chain_style = "classic"
+count = 6
+priority = 78
+description = "Kill chain of 6"
+
+[[trigger]]
+event = "ULTRA_KILL"
+on = "multikill"
+chain_style = "classic"
+count = 7
+priority = 80
+description = "Kill chain of 7"
+
+[[trigger]]
+event = "MONSTER_KILL"
+on = "multikill"
+chain_style = "classic"
+count = 8
+priority = 82
+description = "Kill chain of 8"
+
+[[trigger]]
+event = "LUDICROUS_KILL"
+on = "multikill"
+chain_style = "classic"
+count = 9
+priority = 84
+description = "Kill chain of 9"
+
+[[trigger]]
+event = "HOLY_SHIT"
+on = "multikill"
+chain_style = "classic"
+count = 10
+priority = 86
+description = "Kill chain of 10"
+
+[[trigger]]
+event = "HOLY_SHIT_2"
+on = "multikill"
+chain_style = "classic"
+min_count = 11
+priority = 88
+description = "Kill chain of 11 or more"
+
+# ---------------------------------------------------------------- keys of the binary packs
+[[trigger]]
+event = "PER_KILL"
+on = "kill"
+priority = 10
+description = "Every kill"
+
+[[trigger]]
+event = "SESSION_STARTED"
+on = "session_start"
+priority = 20
+description = "Session started"
+
+# Own death. No pack has a PER_DEATH key; DEATH_INSULT is in all packs seen so
+# far and is used as the pack sound for an own death (derived from its name and
+# how the packs use it, not documented by Recursion).
+[[trigger]]
+event = "DEATH_INSULT"
+on = "death"
+priority = 40
+description = "Own death (least specific pack key)"
+
+# Killed by a team mate. Derived from the key names only (not documented):
+# WHOSE_SIDE / PREVENT_FF; the first one a pack has a sound for plays.
+[[trigger]]
+event = "WHOSE_SIDE"
+on = "teamkilled"
+priority = 50
+description = "Killed by a team mate (derived from the name)"
+
+[[trigger]]
+event = "PREVENT_FF"
+on = "teamkilled"
+priority = 49
+description = "Killed by a team mate (derived from the name)"
+
+# ---------------------------------------------------------------- derived from the key name only
+# Conditions below are NOT documented by Recursion; they follow from the key
+# names and should be checked against real Recursion behaviour (edit here or
+# in your own triggers.toml). SUICIDE_BOMBER, VIP_KILL, VIP_TEAM_KILL and
+# QUAD_DAMAGE stay without a trigger (would need data the tracker does not
+# have, or the meaning is unclear).
+[[trigger]]
+event = "HEAD_HUNTER"
+on = "headshot_streak"
+count = 5
+priority = 58
+description = "5 headshot kills in a row (derived from the name – please verify)"
+
+[[trigger]]
+event = "ROAD_RAGE"
+on = "multikill"
+min_count = 3
+roadkill = true
+priority = 75
+description = "Kill chain of 3+ ending with a road kill (derived from the name – please verify)"
+
+[[trigger]]
+event = "DEATH_FROM_ABOVE"
+on = "kill"
+vehicle = ["Mosquito", "Reaver", "Scythe", "Dervish", "Liberator", "Galaxy", "Valkyrie"]
+priority = 52
+description = "Kill from an aircraft (derived from the name – please verify)"

@@ -1,0 +1,9 @@
+#!/bin/sh
+# gitleaks auf die gestagten Änderungen. Einrichten: git config core.hooksPath .githooks
+set -e
+GITLEAKS="$(command -v gitleaks || echo "$HOME/.local/bin/gitleaks")"
+if [ ! -x "$GITLEAKS" ]; then
+    echo "pre-commit: gitleaks nicht gefunden – Commit abgebrochen (siehe README)." >&2
+    exit 1
+fi
+exec "$GITLEAKS" git --pre-commit --staged --redact --no-banner

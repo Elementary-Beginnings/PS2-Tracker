@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-toast-background"
+description = "Enables the toast_background command without any pre-configured scope."
+commands.allow = ["toast_background"]
+
+[[permission]]
+identifier = "deny-toast-background"
+description = "Denies the toast_background command without any pre-configured scope."
+commands.deny = ["toast_background"]

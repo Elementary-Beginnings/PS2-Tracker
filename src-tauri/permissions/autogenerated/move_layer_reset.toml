@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-move-layer-reset"
+description = "Enables the move_layer_reset command without any pre-configured scope."
+commands.allow = ["move_layer_reset"]
+
+[[permission]]
+identifier = "deny-move-layer-reset"
+description = "Denies the move_layer_reset command without any pre-configured scope."
+commands.deny = ["move_layer_reset"]

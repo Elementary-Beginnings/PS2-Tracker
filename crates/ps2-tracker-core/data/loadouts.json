@@ -1,0 +1,110 @@
+{
+ "_source": "Census ps2:v2/loadout (loadout_id, faction_id, code_name), fetched 2026-11-22",
+ "loadouts": {
+  "1": {
+   "class": "infiltrator",
+   "faction_id": 2
+  },
+  "3": {
+   "class": "light_assault",
+   "faction_id": 2
+  },
+  "4": {
+   "class": "medic",
+   "faction_id": 2
+  },
+  "5": {
+   "class": "engineer",
+   "faction_id": 2
+  },
+  "6": {
+   "class": "heavy_assault",
+   "faction_id": 2
+  },
+  "7": {
+   "class": "max",
+   "faction_id": 2
+  },
+  "8": {
+   "class": "infiltrator",
+   "faction_id": 3
+  },
+  "10": {
+   "class": "light_assault",
+   "faction_id": 3
+  },
+  "11": {
+   "class": "medic",
+   "faction_id": 3
+  },
+  "12": {
+   "class": "engineer",
+   "faction_id": 3
+  },
+  "13": {
+   "class": "heavy_assault",
+   "faction_id": 3
+  },
+  "14": {
+   "class": "max",
+   "faction_id": 3
+  },
+  "15": {
+   "class": "infiltrator",
+   "faction_id": 1
+  },
+  "17": {
+   "class": "light_assault",
+   "faction_id": 1
+  },
+  "18": {
+   "class": "medic",
+   "faction_id": 1
+  },
+  "19": {
+   "class": "engineer",
+   "faction_id": 1
+  },
+  "20": {
+   "class": "heavy_assault",
+   "faction_id": 1
+  },
+  "21": {
+   "class": "max",
+   "faction_id": 1
+  },
+  "28": {
+   "class": "infiltrator",
+   "faction_id": 4
+  },
+  "29": {
+   "class": "light_assault",
+   "faction_id": 4
+  },
+  "30": {
+   "class": "medic",
+   "faction_id": 4
+  },
+  "31": {
+   "class": "engineer",
+   "faction_id": 4
+  },
+  "32": {
+   "class": "heavy_assault",
+   "faction_id": 4
+  },
+  "45": {
+   "class": "max",
+   "faction_id": 4
+  }
+ },
+ "_class_images": "Census ps2:v2/profile image_id per class (same for every faction), measured 2026-11-22; only the numbers, the images are loaded at runtime from /files/ps2/images/static/<id>.png",
+ "class_images": {
+  "infiltrator": 204,
+  "light_assault": 62,
+  "medic": 65,
+  "engineer": 201,
+  "heavy_assault": 59,
+  "max": 207
+ }
+}

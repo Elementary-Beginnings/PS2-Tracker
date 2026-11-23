@@ -1,0 +1,119 @@
+# Default achievements of the PS2 Session Tracker.
+#
+# Custom rules: copy this file to $XDG_CONFIG_HOME/ps2-tracker/achievements.toml
+# and edit it. If that file exists, it replaces this rule set.
+#
+# kind:
+#   multikill       count, window_secs   - count kills within window_secs
+#   streak          count                - kill streak without dying
+#   headshot_streak count                - headshot kills in a row
+#   revenge                              - kill on your last killer
+#   vehicle_kills   count                - vehicle kills in the session
+#   session_kills   count                - kills in the session
+#   revives         count                - revives in the session
+#   weapon_kills    count                - kills with one weapon in the session
+# repeatable = true: may fire several times per session.
+
+[[rule]]
+id = "double_kill"
+name = "Double Tap"
+description = "2 kills within 4 seconds"
+kind = "multikill"
+count = 2
+window_secs = 4
+repeatable = true
+
+[[rule]]
+id = "triple_kill"
+name = "Hat Trick"
+description = "3 kills within 6 seconds"
+kind = "multikill"
+count = 3
+window_secs = 6
+repeatable = true
+
+[[rule]]
+id = "quad_kill"
+name = "Clean Sweep"
+description = "4 kills within 8 seconds"
+kind = "multikill"
+count = 4
+window_secs = 8
+repeatable = true
+
+[[rule]]
+id = "revenge"
+name = "Payback"
+description = "Killed your last killer"
+kind = "revenge"
+repeatable = true
+
+[[rule]]
+id = "streak_5"
+name = "Warmed Up"
+description = "5 kills without dying"
+kind = "streak"
+count = 5
+
+[[rule]]
+id = "streak_10"
+name = "Can't Stop"
+description = "10 kills without dying"
+kind = "streak"
+count = 10
+
+[[rule]]
+id = "streak_20"
+name = "One-Person Army"
+description = "20 kills without dying"
+kind = "streak"
+count = 20
+
+[[rule]]
+id = "headshot_streak_3"
+name = "Steady Hand"
+description = "3 headshot kills in a row"
+kind = "headshot_streak"
+count = 3
+
+[[rule]]
+id = "headshot_streak_5"
+name = "Precision Work"
+description = "5 headshot kills in a row"
+kind = "headshot_streak"
+count = 5
+
+[[rule]]
+id = "vehicle_kills_5"
+name = "Scrap Dealer"
+description = "5 vehicles destroyed in one session"
+kind = "vehicle_kills"
+count = 5
+
+[[rule]]
+id = "session_kills_50"
+name = "Half Century"
+description = "50 kills in one session"
+kind = "session_kills"
+count = 50
+
+[[rule]]
+id = "session_kills_100"
+name = "Century"
+description = "100 kills in one session"
+kind = "session_kills"
+count = 100
+
+[[rule]]
+id = "revives_10"
+name = "Emergency Room"
+description = "10 revives in one session"
+kind = "revives"
+count = 10
+
+[[rule]]
+id = "weapon_kills_25"
+name = "Favourite Weapon"
+description = "25 kills with the same weapon in one session"
+kind = "weapon_kills"
+count = 25

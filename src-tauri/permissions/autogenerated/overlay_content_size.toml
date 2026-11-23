@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-overlay-content-size"
+description = "Enables the overlay_content_size command without any pre-configured scope."
+commands.allow = ["overlay_content_size"]
+
+[[permission]]
+identifier = "deny-overlay-content-size"
+description = "Denies the overlay_content_size command without any pre-configured scope."
+commands.deny = ["overlay_content_size"]

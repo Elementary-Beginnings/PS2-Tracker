@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-voice-pack-size"
+description = "Enables the voice_pack_size command without any pre-configured scope."
+commands.allow = ["voice_pack_size"]
+
+[[permission]]
+identifier = "deny-voice-pack-size"
+description = "Denies the voice_pack_size command without any pre-configured scope."
+commands.deny = ["voice_pack_size"]

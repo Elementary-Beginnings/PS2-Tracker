@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-voice-save-manifest"
+description = "Enables the voice_save_manifest command without any pre-configured scope."
+commands.allow = ["voice_save_manifest"]
+
+[[permission]]
+identifier = "deny-voice-save-manifest"
+description = "Denies the voice_save_manifest command without any pre-configured scope."
+commands.deny = ["voice_save_manifest"]

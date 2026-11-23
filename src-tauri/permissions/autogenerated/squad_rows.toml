@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-squad-rows"
+description = "Enables the squad_rows command without any pre-configured scope."
+commands.allow = ["squad_rows"]
+
+[[permission]]
+identifier = "deny-squad-rows"
+description = "Denies the squad_rows command without any pre-configured scope."
+commands.deny = ["squad_rows"]

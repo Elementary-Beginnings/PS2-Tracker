@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-move-layer-activity"
+description = "Enables the move_layer_activity command without any pre-configured scope."
+commands.allow = ["move_layer_activity"]
+
+[[permission]]
+identifier = "deny-move-layer-activity"
+description = "Denies the move_layer_activity command without any pre-configured scope."
+commands.deny = ["move_layer_activity"]

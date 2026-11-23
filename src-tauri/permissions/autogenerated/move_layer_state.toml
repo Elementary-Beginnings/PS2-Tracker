@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-move-layer-state"
+description = "Enables the move_layer_state command without any pre-configured scope."
+commands.allow = ["move_layer_state"]
+
+[[permission]]
+identifier = "deny-move-layer-state"
+description = "Denies the move_layer_state command without any pre-configured scope."
+commands.deny = ["move_layer_state"]

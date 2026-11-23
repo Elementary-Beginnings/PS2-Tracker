@@ -1,0 +1,69 @@
+[PS2 Session Tracker - Overlay]
+Description=PS2 Session Tracker - Overlay
+above=true
+aboverule=2
+acceptfocus=false
+acceptfocusrule=2
+layer=osd
+layerrule=2
+skippager=true
+skippagerrule=2
+skipswitcher=true
+skipswitcherrule=2
+skiptaskbar=true
+skiptaskbarrule=2
+title=PS2 Session Tracker – Overlay
+titlematch=1
+
+[PS2 Session Tracker - Crosshair]
+Description=PS2 Session Tracker - Crosshair
+above=true
+aboverule=2
+acceptfocus=false
+acceptfocusrule=2
+layer=osd
+layerrule=2
+noborder=true
+noborderrule=2
+skippager=true
+skippagerrule=2
+skipswitcher=true
+skipswitcherrule=2
+skiptaskbar=true
+skiptaskbarrule=2
+title=PS2 Session Tracker – Crosshair
+titlematch=1
+
+[PS2 Session Tracker - Popup]
+Description=PS2 Session Tracker - Popup
+above=true
+aboverule=2
+acceptfocus=false
+acceptfocusrule=2
+layer=osd
+layerrule=2
+skippager=true
+skippagerrule=2
+skipswitcher=true
+skipswitcherrule=2
+skiptaskbar=true
+skiptaskbarrule=2
+title=PS2 Session Tracker – Popup
+titlematch=1
+
+[PS2 Session Tracker - Move]
+Description=PS2 Session Tracker - Move layer
+above=true
+aboverule=2
+layer=osd
+layerrule=2
+noborder=true
+noborderrule=2
+skippager=true
+skippagerrule=2
+skipswitcher=true
+skipswitcherrule=2
+skiptaskbar=true
+skiptaskbarrule=2
+title=PS2 Session Tracker – Move
+titlematch=1

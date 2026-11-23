@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "crosshair",
+  "description": "Crosshair: reads its own image only",
+  "windows": [
+    "crosshair"
+  ],
+  "permissions": [
+    "core:event:default",
+    "allow-crosshair-render-info"
+  ]
+}

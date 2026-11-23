@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-paths"
+description = "Enables the get_paths command without any pre-configured scope."
+commands.allow = ["get_paths"]
+
+[[permission]]
+identifier = "deny-get-paths"
+description = "Denies the get_paths command without any pre-configured scope."
+commands.deny = ["get_paths"]

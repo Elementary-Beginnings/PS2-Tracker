@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-move-layer-set"
+description = "Enables the move_layer_set command without any pre-configured scope."
+commands.allow = ["move_layer_set"]
+
+[[permission]]
+identifier = "deny-move-layer-set"
+description = "Denies the move_layer_set command without any pre-configured scope."
+commands.deny = ["move_layer_set"]

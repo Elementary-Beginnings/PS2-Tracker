@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crosshair-import"
+description = "Enables the crosshair_import command without any pre-configured scope."
+commands.allow = ["crosshair_import"]
+
+[[permission]]
+identifier = "deny-crosshair-import"
+description = "Denies the crosshair_import command without any pre-configured scope."
+commands.deny = ["crosshair_import"]

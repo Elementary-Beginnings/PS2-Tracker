@@ -1,0 +1,42 @@
+# Checks the dependencies a pull request adds or changes (Cargo.lock,
+# pnpm-lock.yaml, workflows): known vulnerabilities from moderate up and
+# licenses that do not fit the project.
+#
+# License policy: ps2-tracker is distributed as `MIT OR Apache-2.0`, and the
+# release binaries link all Rust crates statically. A GPL or AGPL dependency
+# would put the whole binary under that license, and LGPL code linked
+# statically would oblige us to ship relinkable objects – neither fits a
+# permissive dual license. The full allow-list is in deny.toml (cargo-deny in
+# CI); this denylist catches the copyleft cases already in the pull request.
+# hyprland/hyprland-macros (GPL-3.0) are exempt: they are only pulled in for
+# Linux by active-win-pos-rs, which the app uses on Windows only, so they are
+# never compiled into a shipped binary (see deny.toml).
+name: Dependency review
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: dependency-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # compare the dependency manifests of base and head
+    steps:
+      - uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
+        with:
+          fail-on-severity: moderate
+          deny-licenses: >-
+            GPL-2.0-only, GPL-2.0-or-later, GPL-3.0-only, GPL-3.0-or-later,
+            AGPL-3.0-only, AGPL-3.0-or-later,
+            LGPL-2.0-only, LGPL-2.0-or-later, LGPL-2.1-only, LGPL-2.1-or-later,
+            LGPL-3.0-only, LGPL-3.0-or-later, SSPL-1.0
+          allow-dependencies-licenses: >-
+            pkg:cargo/hyprland, pkg:cargo/hyprland-macros

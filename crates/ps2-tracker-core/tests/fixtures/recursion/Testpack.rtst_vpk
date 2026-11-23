@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AchievementSettings>
+  <ACHIEVEMENTDATA>
+    <AUTHOR>Synthetic test data</AUTHOR>
+    <DESCRIPTION>Rebuilt structure with self-generated tones &amp; edge cases</DESCRIPTION>
+    <DATA>
+      <ACHIEVEMENT>
+        <NAME>HEAD_SHOT</NAME>
+        <PATH>.\Testpack\Don&apos;t Stop!.ogg</PATH>
+        <IMAGE_INGAME>true</IMAGE_INGAME>
+        <IMAGE_STREAMING>false</IMAGE_STREAMING>
+        <SOUND>true</SOUND>
+      </ACHIEVEMENT>
+      <ACHIEVEMENT>
+        <NAME>DOUBLE_KILL</NAME>
+        <PATH>.\Testpack\double.ogg</PATH>
+        <IMAGE_INGAME>true</IMAGE_INGAME>
+        <IMAGE_STREAMING>true</IMAGE_STREAMING>
+        <SOUND>true</SOUND>
+      </ACHIEVEMENT>
+      <ACHIEVEMENT>
+        <NAME>TRIPLE_KILL</NAME>
+        <PATH>.\TESTPACK\Triple.OGG</PATH>
+        <IMAGE_INGAME>true</IMAGE_INGAME>
+        <IMAGE_STREAMING>true</IMAGE_STREAMING>
+        <SOUND>true</SOUND>
+      </ACHIEVEMENT>
+      <ACHIEVEMENT>
+        <NAME>KILLING_SPREE</NAME>
+        <PATH>Default</PATH>
+        <IMAGE_INGAME>true</IMAGE_INGAME>
+        <IMAGE_STREAMING>true</IMAGE_STREAMING>
+        <SOUND>true</SOUND>
+      </ACHIEVEMENT>
+      <ACHIEVEMENT>
+        <NAME>TEAM_KILLER</NAME>
+        <PATH>.\Testpack\tk.ogg</PATH>
+        <IMAGE_INGAME>true</IMAGE_INGAME>
+        <IMAGE_STREAMING>true</IMAGE_STREAMING>
+        <SOUND>false</SOUND>
+      </ACHIEVEMENT>
+      <ACHIEVEMENT>
+        <NAME>REVENGE</NAME>
+        <PATH>.\..\recursion\evil.ogg</PATH>
+        <IMAGE_INGAME>true</IMAGE_INGAME>
+        <IMAGE_STREAMING>true</IMAGE_STREAMING>
+        <SOUND>true</SOUND>
+      </ACHIEVEMENT>
+      <ACHIEVEMENT>
+        <NAME>PIZZA_DELIVERY</NAME>
+        <PATH>.\Testpack\pizza.ogg</PATH>
+        <IMAGE_INGAME>true</IMAGE_INGAME>
+        <IMAGE_STREAMING>true</IMAGE_STREAMING>
+        <SOUND>true</SOUND>
+      </ACHIEVEMENT>
+      <ACHIEVEMENT>
+        <NAME>FIRST_BLOOD</NAME>
+        <PATH>.\Testpack\missing.ogg</PATH>
+        <IMAGE_INGAME>true</IMAGE_INGAME>
+        <IMAGE_STREAMING>true</IMAGE_STREAMING>
+        <SOUND>true</SOUND>
+      </ACHIEVEMENT>
+      <ACHIEVEMENT>
+        <NAME>SOME_FUTURE_KEY</NAME>
+        <PATH>.\Testpack\double.ogg</PATH>
+        <IMAGE_INGAME>false</IMAGE_INGAME>
+        <IMAGE_STREAMING>false</IMAGE_STREAMING>
+        <SOUND>true</SOUND>
+      </ACHIEVEMENT>
+    </DATA>
+  </ACHIEVEMENTDATA>
+</AchievementSettings>

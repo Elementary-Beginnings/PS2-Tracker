@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-lookup-character"
+description = "Enables the lookup_character command without any pre-configured scope."
+commands.allow = ["lookup_character"]
+
+[[permission]]
+identifier = "deny-lookup-character"
+description = "Denies the lookup_character command without any pre-configured scope."
+commands.deny = ["lookup_character"]

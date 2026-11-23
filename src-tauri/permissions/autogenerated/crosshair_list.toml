@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crosshair-list"
+description = "Enables the crosshair_list command without any pre-configured scope."
+commands.allow = ["crosshair_list"]
+
+[[permission]]
+identifier = "deny-crosshair-list"
+description = "Denies the crosshair_list command without any pre-configured scope."
+commands.deny = ["crosshair_list"]

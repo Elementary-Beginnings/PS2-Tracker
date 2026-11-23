@@ -1,0 +1,70 @@
+# Flatpak manifest for the PS2 Session Tracker.
+#
+# App ID: reverse DNS of herz.dev (the author's domain), last part in the
+# CamelCase Flatpak convention. The Tauri identifier stays dev.herz.ps2tracker.
+#
+# Built offline: the frontend (dist/) is built before flatpak-builder (CI job
+# `flatpak`), the Rust crates come from cargo-sources.json, generated from
+# Cargo.lock with flatpak-cargo-generator (each crate with its SHA-256).
+app-id: dev.herz.Ps2Tracker
+# WebKitGTK 4.1 and GTK 3 are part of the GNOME runtime
+runtime: org.gnome.Platform
+runtime-version: "51"
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: ps2-tracker
+finish-args:
+  # Overlay and crosshair run as X11 windows (XWayland): only then can the app
+  # place them and set the on-screen-display window type above a fullscreen
+  # game; the focus detection reads _NET_ACTIVE_WINDOW / WM_CLASS of the game,
+  # which is itself an XWayland window. Hence x11 and not fallback-x11.
+  - --socket=x11
+  - --share=ipc
+  # main window natively under Wayland if ui.x11_backend is switched off
+  - --socket=wayland
+  # WebKitGTK rendering
+  - --device=dri
+  # sound: cpal/ALSA goes through the runtime's PulseAudio plugin to PipeWire
+  - --socket=pulseaudio
+  # Census REST API, event stream (WebSocket), optional OBS endpoint on 127.0.0.1
+  - --share=network
+  # tray icon (libayatana-appindicator, StatusNotifierItem)
+  - --talk-name=org.kde.StatusNotifierWatcher
+  # optional Discord Rich Presence (off by default): Discord's local IPC socket
+  # $XDG_RUNTIME_DIR/discord-ipc-N (only these two socket paths, nothing else
+  # of the runtime directory)
+  - --filesystem=xdg-run/discord-ipc-0
+  - --filesystem=xdg-run/discord-ipc-1
+  # single instance (tauri-plugin-single-instance): D-Bus name from the Tauri
+  # identifier, which is not under the Flatpak app ID prefix
+  - --own-name=dev.herz.ps2tracker.SingleInstance
+  # No filesystem access: imports go through the FileChooser portal
+  # (feature dialog-portal), "Open folder" through the OpenURI portal (xdg-open).
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin
+  env:
+    CARGO_HOME: /run/build/ps2-tracker/cargo
+    CARGO_NET_OFFLINE: "true"
+modules:
+  - name: ps2-tracker
+    buildsystem: simple
+    build-commands:
+      - cargo --offline build --release --locked -p ps2-tracker --no-default-features --features dialog-portal,tauri/custom-protocol
+      - install -Dm755 target/release/ps2-tracker /app/bin/ps2-tracker
+      - install -Dm644 packaging/flatpak/dev.herz.Ps2Tracker.desktop /app/share/applications/dev.herz.Ps2Tracker.desktop
+      - install -Dm644 packaging/flatpak/dev.herz.Ps2Tracker.metainfo.xml /app/share/metainfo/dev.herz.Ps2Tracker.metainfo.xml
+      - install -Dm644 src-tauri/icons/128x128.png /app/share/icons/hicolor/128x128/apps/dev.herz.Ps2Tracker.png
+      - install -Dm644 src-tauri/icons/128x128@2x.png /app/share/icons/hicolor/256x256/apps/dev.herz.Ps2Tracker.png
+      - install -Dm644 crates/ps2-tracker-core/assets/achievements.default.toml /app/share/ps2-tracker/achievements.default.toml
+      - install -Dm644 crates/ps2-tracker-core/assets/triggers.default.toml /app/share/ps2-tracker/triggers.default.toml
+    sources:
+      # the checked-out repository incl. the prebuilt dist/ (CI: pnpm build)
+      - type: dir
+        path: ../..
+        skip:
+          - target
+          - node_modules
+          - .flatpak-builder
+          - flatpak-build
+      - cargo-sources.json

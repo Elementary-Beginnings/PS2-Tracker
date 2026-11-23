@@ -1,0 +1,55 @@
+# cargo-deny: Advisories und Herkunft der Abhängigkeiten.
+[graph]
+# the shipped targets; `hyprland` (GPL-3.0) only appears under active-win-pos-rs
+# for Linux, but that crate is used on Windows only, so it is never built
+targets = ["x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
+
+[advisories]
+yanked = "deny"
+# Tauri/GTK3-Stack: gtk-rs-Crates (GTK 3) sind als "unmaintained" gemeldet,
+# solange Tauri v2 auf webkit2gtk-4.1/GTK 3 setzt. Kein Sicherheitsbefund.
+unmaintained = "workspace"
+
+[bans]
+multiple-versions = "allow"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+
+[licenses]
+# Projekt: MIT OR Apache-2.0. Erlaubt sind nur Lizenzen, die sich damit
+# verbreiten lassen (MPL-2.0: Dateiebene, Quellen der Crates sind öffentlich).
+confidence-threshold = 0.9
+allow = [
+  "MIT",
+  "MIT-0",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-3-Clause",
+  "ISC",
+  "Zlib",
+  "0BSD",
+  "BSL-1.0",
+  "Unlicense",
+  "CC0-1.0",
+  "Unicode-3.0",
+  "MPL-2.0",
+  "CDLA-Permissive-2.0",
+]
+
+# hyprland/hyprland-macros (GPL-3.0) are a Linux-only dependency of
+# active-win-pos-rs, which this project uses on Windows only
+# (src-tauri/Cargo.toml: [target.'cfg(windows)'.dependencies]). cargo tree
+# --target x86_64-unknown-linux-gnu / x86_64-pc-windows-msvc -i hyprland shows
+# nothing: they are never compiled into a shipped binary. cargo-deny unions the
+# cfg conditions of all listed targets and therefore still sees them.
+[[licenses.exceptions]]
+crate = "hyprland"
+allow = ["GPL-3.0-or-later"]
+
+[[licenses.exceptions]]
+crate = "hyprland-macros"
+allow = ["GPL-3.0-or-later"]
