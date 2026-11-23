@@ -23,7 +23,7 @@ overlay and crosshair are separate windows.
 ## Features
 
 - **Live sessions** with kill feed, classes, lifetime comparison and
-  achievements – [Sessions, Analytics and Export](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Sessions-Analytics-and-Export)
+  achievements; a session resumes after a logout or game crash – [Sessions, Analytics and Export](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Sessions-Analytics-and-Export)
 - **History and analytics** with Excel/JSON/CSV export and import – [Sessions, Analytics and Export](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Sessions-Analytics-and-Export#analytics)
 - **Overlay** over the game, moved directly in place (Ctrl+F2), OBS browser source – [Overlay and Move Mode](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Overlay-and-Move-Mode)
 - **Crosshair** window with built-in and own PNGs and hit feedback – [Crosshair](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Crosshair)

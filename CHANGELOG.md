@@ -5,6 +5,18 @@ after [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Security
+
+- Session import checks the pause times added with the resume window in 1.1.0:
+  a file with negative pause seconds, more pause than session length, or a
+  pause in a finished session is rejected instead of skewing playtime and
+  rates.
+
+### Documentation
+
+- README, session file schema (`paused_at`, `paused_secs`) and *Permissions and
+  Privacy* describe the resume window and the new import checks.
+
 ## [1.1.0] – 2026-11-23
 
 ### Added

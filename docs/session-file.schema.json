@@ -44,6 +44,8 @@
         "world_id": { "type": ["integer", "null"], "description": "last server (Census world_id), data version 3" },
         "zone_id": { "type": ["integer", "null"], "description": "last continent (zone definition, lower 16 bits of zone_id), data version 3" },
         "loadout_id": { "type": ["integer", "null"], "description": "last own loadout (Census loadout_id → class), data version 4" },
+        "paused_at": { "type": ["integer", "null"], "description": "logout time while the session waits for a relogin (resume window, 1.1.0); only in a running session, never together with ended_at" },
+        "paused_secs": { "type": "integer", "minimum": 0, "description": "seconds logged out between logout and relogin, not counted as playtime (1.1.0); at most ended_at (or last_event_at) minus started_at" },
         "stats": {
           "type": "object",
           "properties": {

@@ -25,7 +25,7 @@ und die Oberfläche der App sind englisch.
 
 ## Funktionen
 
-- **Live-Sessions** mit Killfeed, Klassen, Lifetime-Vergleich und Erfolgen – [Sessions, Analytics and Export](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Sessions-Analytics-and-Export)
+- **Live-Sessions** mit Killfeed, Klassen, Lifetime-Vergleich und Erfolgen; nach Logout oder Spielabsturz läuft die Session weiter – [Sessions, Analytics and Export](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Sessions-Analytics-and-Export)
 - **Verlauf und Auswertung** mit Export/Import (Excel, JSON, CSV) – [Sessions, Analytics and Export](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Sessions-Analytics-and-Export#analytics)
 - **Overlay** über dem Spiel, direkt an Ort und Stelle verschiebbar (Strg+F2), OBS-Browserquelle – [Overlay and Move Mode](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Overlay-and-Move-Mode)
 - **Crosshair**-Fenster mit eingebauten und eigenen PNGs und Treffer-Feedback – [Crosshair](https://github.com/Elementary-Beginnings/ps2-tracker/wiki/Crosshair)

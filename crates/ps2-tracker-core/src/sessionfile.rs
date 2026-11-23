@@ -153,6 +153,15 @@ impl SessionFile {
         {
             return Err(invalid("end time out of range"));
         }
+        // resume window (1.1.0): time logged out between logout and relogin
+        let span = s.ended_at.unwrap_or(s.last_event_at) - s.started_at;
+        if s.paused_secs < 0
+            || s.paused_secs > span
+            || s.paused_at
+                .is_some_and(|p| s.ended_at.is_some() || p < s.started_at || p > now + 86_400)
+        {
+            return Err(invalid("pause time out of range"));
+        }
         if s.timeline.len() > MAX_ENTRIES
             || s.events.len() > MAX_ENTRIES
             || s.weapons.len() > 10_000
@@ -740,6 +749,23 @@ mod tests {
         let mut f = SessionFile::new(&sample(), &names());
         f.format = "other".into();
         assert!(f.validate(NOW).is_err());
+        // pause times: negative, longer than the session, or a pause in a
+        // finished session
+        let mut f = SessionFile::new(&sample(), &names());
+        f.session.paused_secs = -60;
+        assert!(f.validate(NOW).is_err());
+        let mut f = SessionFile::new(&sample(), &names());
+        f.session.paused_secs = i64::MAX;
+        assert!(f.validate(NOW).is_err());
+        let mut f = SessionFile::new(&sample(), &names());
+        f.session.ended_at = Some(f.session.last_event_at);
+        f.session.paused_at = Some(f.session.started_at);
+        assert!(f.validate(NOW).is_err());
+        let mut f = SessionFile::new(&sample(), &names());
+        f.session.ended_at = None;
+        f.session.paused_at = Some(f.session.last_event_at);
+        f.session.paused_secs = 0;
+        f.validate(NOW).unwrap();
         assert!(from_json("{\"session\":{}}").is_err());
         assert!(from_json("[1,2]").is_err());
         // an .xlsx without embedded data

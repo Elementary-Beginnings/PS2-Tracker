@@ -162,7 +162,9 @@ The app reads and writes only in its own folders
   not provided for it. Whether JSON or Excel is decided by the content (ZIP
   signature), not the extension. Limits: file at most 25 MB, embedded data of an
   .xlsx at most 64 MB unpacked, at most 200 000 entries per list; format, version,
-  times, character and name lengths are checked before anything is stored
+  times (including the pause times of the resume window: `paused_secs` between 0
+  and the session length, `paused_at` only in a running session), character and
+  name lengths are checked before anything is stored
   (`crates/ps2-tracker-core/src/sessionfile.rs`, `read_file`, `validate`). From an
   .xlsx only the own part `customXml/ps2-tracker-session.xml` is read; formulas,
   macros or other parts of the file are not evaluated. Duplicates (same character
