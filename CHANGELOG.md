@@ -5,6 +5,8 @@ after [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.1] – 2026-11-23
+
 ### Added
 
 - Session buttons for the resume window on the live page: while a session
