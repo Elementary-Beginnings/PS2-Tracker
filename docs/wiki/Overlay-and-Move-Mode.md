@@ -124,3 +124,8 @@ the script API `layer` is read-only and `keepAbove` only lifts into `Above`.
 Enable *Settings → OBS browser source* and add a browser source in OBS for
 `http://127.0.0.1:47823/` (bound to `127.0.0.1` only). It shows the same blocks
 as the overlay, including the kill feed and “Squad top 3”.
+
+Use `127.0.0.1` or `localhost` with the configured port in the URL: the
+endpoint answers only requests addressed to this computer (`Host`
+`127.0.0.1:<port>`, `localhost:<port>` or `[::1]:<port>`); other names get
+HTTP 421.

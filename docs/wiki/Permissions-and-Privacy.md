@@ -166,7 +166,9 @@ Data & Privacy*). When switched on, it listens only on `127.0.0.1` (port 47823,
 configurable) and serves only the overlay page with its assets, `/api/snapshot`,
 `/api/events` (server-sent events) and `/api/background`. The main user interface
 is not served there (path filter in `asset`); own CSP,
-`X-Content-Type-Options: nosniff`.
+`X-Content-Type-Options: nosniff`, no CORS headers. Only requests with `Host`
+`127.0.0.1:<port>`, `localhost:<port>` or `[::1]:<port>` are answered, others
+get 421 (`local_host_only`, test `requests_for_another_host_are_refused`).
 
 ## File system
 

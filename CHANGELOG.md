@@ -44,6 +44,10 @@ after [SemVer](https://semver.org/).
 
 - Database schema 4: new table `sync_queue` (online sync); older databases are
   migrated at start, no data is removed.
+- OBS endpoint: stricter request validation. Only requests addressed to
+  `127.0.0.1`, `localhost` or `[::1]` with the configured port are answered,
+  others get HTTP 421 (OBS browser sources with `http://127.0.0.1:<port>/`
+  work as before).
 
 ## [1.1.1] – 2026-11-23
 
