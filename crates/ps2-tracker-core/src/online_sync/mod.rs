@@ -26,7 +26,9 @@ pub const DEFAULT_API_BASE: &str = "https://stats.elme.games/api/v1";
 /// Loopback ports of the sign-in, tried in this order. Each
 /// `http://127.0.0.1:<port>/callback` is registered with Discord and accepted
 /// by the server (contract: documentation/online-sync-api.md of the server).
-pub const REDIRECT_PORTS: [u16; 3] = [47_821, 47_822, 47_823];
+/// Kept apart from the default OBS port (47823); if the user put the OBS
+/// endpoint on one of them, the sign-in takes the next free one.
+pub const REDIRECT_PORTS: [u16; 3] = [47_831, 47_832, 47_833];
 
 /// Discord's authorization endpoint.
 pub const DISCORD_AUTHORIZE: &str = "https://discord.com/oauth2/authorize";
@@ -216,7 +218,7 @@ mod tests {
     fn authorize_url_has_every_parameter() {
         let u = reqwest::Url::parse(&authorize_url(
             &test_snowflake('7'),
-            "http://127.0.0.1:47821/callback",
+            "http://127.0.0.1:47831/callback",
             "chal",
             "st",
         ))
@@ -226,14 +228,14 @@ mod tests {
         assert_eq!(q["response_type"], "code");
         assert_eq!(q["client_id"], test_snowflake('7'));
         assert_eq!(q["scope"], "identify");
-        assert_eq!(q["redirect_uri"], "http://127.0.0.1:47821/callback");
+        assert_eq!(q["redirect_uri"], "http://127.0.0.1:47831/callback");
         assert_eq!(q["code_challenge"], "chal");
         assert_eq!(q["code_challenge_method"], "S256");
         assert_eq!(q["state"], "st");
         assert_eq!(q["prompt"], "consent");
         assert!(
             u.as_str()
-                .contains("redirect_uri=http%3A%2F%2F127.0.0.1%3A47821%2Fcallback")
+                .contains("redirect_uri=http%3A%2F%2F127.0.0.1%3A47831%2Fcallback")
         );
         assert_eq!(
             privacy_url(DEFAULT_API_BASE).as_deref(),
@@ -267,6 +269,13 @@ mod tests {
             keyring_account("https://a.example/api/v1/"),
             keyring_account("https://b.example/api/v1")
         );
+    }
+
+    #[test]
+    fn redirect_ports_are_apart_from_the_obs_default() {
+        assert_eq!(REDIRECT_PORTS, [47_831, 47_832, 47_833]);
+        let obs = crate::config::ObsSettings::default().port;
+        assert!(!REDIRECT_PORTS.contains(&obs), "OBS port {obs}");
     }
 
     #[test]

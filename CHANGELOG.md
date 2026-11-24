@@ -33,6 +33,8 @@ after [SemVer](https://semver.org/).
   error.
 - Online sign-in: the local sign-in page serves connections side by side with
   a shorter read timeout, so the browser's return is answered right away.
+- Online sign-in: the local sign-in ports are 47831, 47832 and 47833, apart
+  from the default port of the OBS endpoint (47823).
 - Flatpak: permission `--talk-name=org.freedesktop.secrets` for the keyring of
   the online sync.
 - Official builds can embed the Discord client ID of the stats server

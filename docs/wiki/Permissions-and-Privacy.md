@@ -124,9 +124,11 @@ Off by default (`[online_sync] enabled = false`). Details for users:
   `identify`, random `state` checked on the callback (`pkce.rs`, `loopback.rs`).
   The system browser opens Discord (`sync.rs`, `open_url`: https only, no
   shell). The redirect goes to a listener **only on 127.0.0.1**, first free
-  port of 47821/47822/47823, only during the sign-in (at most 5 minutes), for
+  port of 47831/47832/47833, only during the sign-in (at most 5 minutes), for
   exactly one `/callback` with the right `state`; other requests get an error
-  page and do not end the wait. The callback page is static HTML without script
+  page and do not end the wait. Connections are served side by side (at most
+  16 at a time, 2 s to send the request), so an idle connection does not hold
+  up the callback. The callback page is static HTML without script
   (`no-referrer`, CSP `default-src 'none'`). Code, verifier and redirect URI go
   to `POST /auth/discord` of the stats server; the app has no client secret.
 - **Tokens:** the refresh token (30 days, single use) only in the **system

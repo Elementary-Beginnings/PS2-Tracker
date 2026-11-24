@@ -64,7 +64,8 @@ session) are not repeated automatically.
 - Discord OAuth 2 with PKCE, scope `identify` (your Discord ID only). The
   tracker never sees a Discord password or token and holds no client secret.
 - The browser comes back to a local address on your own computer
-  (`http://127.0.0.1:47821/callback`, or port 47822/47823 if that one is taken).
+  (`http://127.0.0.1:47831/callback`, or port 47832/47833 if that one is taken,
+  for example when you set the OBS endpoint to one of these ports).
   The tracker listens there only during the sign-in (at most 5 minutes), only on
   127.0.0.1, and closes the port right after.
 - The stats server returns an access token (valid 15 minutes, kept only in
