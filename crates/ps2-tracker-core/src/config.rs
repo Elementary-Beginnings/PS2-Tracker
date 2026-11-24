@@ -671,14 +671,42 @@ impl Config {
             "# PS2 Session Tracker configuration (also written by the UI)\n{}",
             toml::to_string_pretty(self)?
         );
-        let tmp = path.with_extension("toml.tmp");
+        // one temp file per call: saves from different threads (hotkey,
+        // UI, overlay size) must not write into the same temp file
+        static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let n = SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let tmp = path.with_extension(format!("toml.{}-{n}.tmp", std::process::id()));
         std::fs::write(&tmp, text).map_err(|e| ConfigError::Io(tmp.clone(), e))?;
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
             let _ = std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(0o600));
         }
-        std::fs::rename(&tmp, path).map_err(|e| ConfigError::Io(path.to_owned(), e))
+        let res = rename_retrying(&tmp, path);
+        if res.is_err() {
+            let _ = std::fs::remove_file(&tmp);
+        }
+        res.map_err(|e| ConfigError::Io(path.to_owned(), e))
+    }
+}
+
+/// `rename` over the old file. Windows refuses it with "access denied" while
+/// another program (virus scanner, indexer, editor) has the target open
+/// without delete sharing; that is usually over within milliseconds.
+fn rename_retrying(from: &Path, to: &Path) -> std::io::Result<()> {
+    let mut tries = 0;
+    loop {
+        match std::fs::rename(from, to) {
+            Err(e)
+                if cfg!(windows)
+                    && e.kind() == std::io::ErrorKind::PermissionDenied
+                    && tries < 10 =>
+            {
+                tries += 1;
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+            r => return r,
+        }
     }
 }
 
@@ -769,6 +797,37 @@ mod tests {
         let mut c = Config::default();
         c.crosshair.file = "my crosshair.png".into();
         assert!(c.validate().is_ok());
+    }
+
+    #[test]
+    fn concurrent_saves_leave_a_valid_file() {
+        let dir = std::env::temp_dir().join(format!("ps2t-cfgsave-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let path = dir.join("config.toml");
+        let threads: Vec<_> = (0..8)
+            .map(|i| {
+                let path = path.clone();
+                std::thread::spawn(move || {
+                    let mut c = Config::default();
+                    c.overlay.width = 300 + i;
+                    for _ in 0..20 {
+                        c.save(&path).unwrap();
+                    }
+                })
+            })
+            .collect();
+        for t in threads {
+            t.join().unwrap();
+        }
+        let c = Config::load(&path).unwrap();
+        assert!((300..308).contains(&c.overlay.width));
+        let left: Vec<_> = std::fs::read_dir(&dir)
+            .unwrap()
+            .filter_map(Result::ok)
+            .filter(|e| e.file_name().to_string_lossy().ends_with(".tmp"))
+            .collect();
+        assert!(left.is_empty());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

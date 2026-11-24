@@ -11,6 +11,7 @@ after [SemVer](https://semver.org/).
 - Windows: "Open folder" opens the folder through the Windows shell instead of starting explorer.exe with the path as its command line.
 - Voice packs: a pack whose voicepack.toml was written on Windows (backslashes in file paths, or file names that differ in upper/lower case from the files) now loads on Linux too.
 - Linux: without an X server (pure Wayland session without XWayland) global hotkeys are shown as not registered, with a hint to bind the command line switches to desktop shortcuts, instead of appearing to work.
+- Settings are saved more robustly: saves that happen at the same moment no longer share a temporary file, and on Windows a save briefly retries when another program holds the configuration file open.
 
 ## [1.2.1] – 2026-11-24
 
