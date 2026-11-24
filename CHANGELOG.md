@@ -48,6 +48,10 @@ after [SemVer](https://semver.org/).
   `127.0.0.1`, `localhost` or `[::1]` with the configured port are answered,
   others get HTTP 421 (OBS browser sources with `http://127.0.0.1:<port>/`
   work as before).
+- `ps2-tracker-core`: new default feature `app` for everything the desktop
+  app needs. With `default-features = false` the crate only reads, checks and
+  summarises session files and writes the Excel export, without the Census,
+  ESS, SQLite, keyring and voice pack dependencies.
 - Exports (session file, chart image, voice pack ZIP) check the file chosen in
   the save dialog before writing: the extension of the format, an existing
   folder, a plain file and not inside the app's own folders.

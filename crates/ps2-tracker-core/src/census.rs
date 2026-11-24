@@ -2,18 +2,21 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex};
+#[cfg(feature = "app")]
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::events::CharacterId;
+#[cfg(feature = "app")]
 use crate::ratelimit::{Backoff, RateLimiter};
 
 pub const CENSUS_BASE: &str = "https://census.daybreakgames.com";
 
 #[derive(Debug, thiserror::Error)]
 pub enum CensusError {
+    #[cfg(feature = "app")]
     #[error("HTTP error: {0}")]
     Http(#[from] reqwest::Error),
     #[error("Census reports: {0}")]
@@ -88,6 +91,7 @@ impl LifetimeStats {
     }
 }
 
+#[cfg(feature = "app")]
 #[derive(Clone)]
 pub struct CensusClient {
     http: reqwest::Client,
@@ -103,6 +107,7 @@ pub struct CensusClient {
 }
 
 /// Without the service ID (logs).
+#[cfg(feature = "app")]
 impl std::fmt::Debug for CensusClient {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CensusClient")
@@ -121,6 +126,7 @@ fn s<T: std::str::FromStr>(v: &Value, key: &str) -> Option<T> {
     }
 }
 
+#[cfg(feature = "app")]
 impl CensusClient {
     pub fn new(service_id: &str) -> Result<Self, CensusError> {
         Self::with_base(CENSUS_BASE, service_id)
@@ -580,6 +586,7 @@ pub struct OutfitMember {
     pub online: bool,
 }
 
+#[cfg(feature = "app")]
 fn parse_outfit_members(rows: &[Value]) -> Vec<OutfitMember> {
     let mut v: Vec<OutfitMember> = rows
         .iter()
@@ -599,6 +606,7 @@ fn parse_outfit_members(rows: &[Value]) -> Vec<OutfitMember> {
     v
 }
 
+#[cfg(feature = "app")]
 fn is_transient(e: &CensusError) -> bool {
     match e {
         CensusError::Http(h) => {
@@ -609,6 +617,7 @@ fn is_transient(e: &CensusError) -> bool {
     }
 }
 
+#[cfg(feature = "app")]
 fn name_en(v: &Value) -> Option<String> {
     v.pointer("/name/en")
         .and_then(Value::as_str)
@@ -811,6 +820,7 @@ impl NameCache {
 mod tests {
 
     /// The service ID must not appear in error messages (logs, UI).
+    #[cfg(feature = "app")]
     #[tokio::test]
     async fn errors_do_not_contain_the_service_id() {
         let c = CensusClient::with_base("http://127.0.0.1:9", "secretid123").unwrap();
@@ -883,6 +893,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "app")]
     fn parses_outfit_members() {
         let rows = vec![
             json!({"character_id":"5428000000000000002","character":{"name":{"first":"Bravo"},"faction_id":"3"}}),

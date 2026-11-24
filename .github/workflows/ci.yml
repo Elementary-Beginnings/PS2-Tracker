@@ -63,6 +63,10 @@ jobs:
       - run: pnpm test
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked
+      - name: ps2-tracker-core without the app feature (session file only)
+        run: |
+          cargo clippy -p ps2-tracker-core --no-default-features --all-targets --locked -- -D warnings
+          cargo test -p ps2-tracker-core --no-default-features --locked
 
   audit:
     name: Dependencies and secrets

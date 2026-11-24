@@ -7,35 +7,93 @@ rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 
+[features]
+default = ["app"]
+# Everything the desktop app needs. Without it (default-features = false) only
+# reading, checking and summarising session files and the Excel export remain
+# (used by the stats server).
+app = [
+    "dep:directories",
+    "dep:futures-util",
+    "dep:reqwest",
+    "dep:rusqlite",
+    "dep:tokio",
+    "dep:tokio-tungstenite",
+    "dep:tracing",
+    "dep:csv",
+    "dep:png",
+    "dep:quick-xml",
+    "dep:keyring-core",
+    "dep:getrandom",
+    "dep:sha2",
+    "dep:zbus-secret-service-keyring-store",
+    "dep:windows-native-keyring-store",
+]
+
 [dependencies]
-directories.workspace = true
-futures-util.workspace = true
-reqwest.workspace = true
-rusqlite.workspace = true
+# session file, summary and Excel export (always)
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-tokio.workspace = true
-tokio-tungstenite.workspace = true
 toml.workspace = true
-tracing.workspace = true
-csv.workspace = true
 rust_xlsxwriter = { version = "0.103.0", default-features = false }
 base64 = "0.23.1"
-png = "0.18.1"
-quick-xml = "0.42.0"
 zip = { version = "9.8.1", default-features = false, features = ["deflate-flate2-zlib-rs"] }
-keyring-core = "1.1.0"
-getrandom = "0.4.3"
-sha2 = "0.11.1"
+# desktop app only (feature "app")
+directories = { workspace = true, optional = true }
+futures-util = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+rusqlite = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+tokio-tungstenite = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+csv = { workspace = true, optional = true }
+png = { version = "0.18.1", optional = true }
+quick-xml = { version = "0.42.0", optional = true }
+keyring-core = { version = "1.1.0", optional = true }
+getrandom = { version = "0.4.3", optional = true }
+sha2 = { version = "0.11.1", optional = true }
 
 # online sync: refresh token in the OS keyring (keyring-core with the
 # platform stores; Secret Service over zbus, pure Rust crypto, no libdbus)
 [target.'cfg(target_os = "linux")'.dependencies]
-zbus-secret-service-keyring-store = { version = "1.0.1", features = ["crypto-rust"] }
+zbus-secret-service-keyring-store = { version = "1.0.1", features = ["crypto-rust"], optional = true }
 
 [target.'cfg(windows)'.dependencies]
-windows-native-keyring-store = { version = "1.1.0", default-features = false }
+windows-native-keyring-store = { version = "1.1.0", default-features = false, optional = true }
+
+# examples and tests of the desktop parts need feature "app"
+[[example]]
+name = "census_probe"
+required-features = ["app"]
+
+[[example]]
+name = "crosshair_dump"
+required-features = ["app"]
+
+[[example]]
+name = "ess_probe"
+required-features = ["app"]
+
+[[example]]
+name = "pak_probe"
+required-features = ["app"]
+
+[[test]]
+name = "arnold_layout"
+required-features = ["app"]
+
+[[test]]
+name = "real_packs"
+required-features = ["app"]
+
+[[test]]
+name = "recursion_binary"
+required-features = ["app"]
+
+[[test]]
+name = "recursion_pack"
+required-features = ["app"]
 
 [dev-dependencies]
 tracing-subscriber.workspace = true

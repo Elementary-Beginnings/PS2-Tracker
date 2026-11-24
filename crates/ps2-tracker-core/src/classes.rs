@@ -300,6 +300,7 @@ mod tests {
 
     /// Compares the table with the live Census collection (network; run with
     /// `cargo test -p ps2-tracker-core -- --ignored loadouts_match_census`).
+    #[cfg(feature = "app")]
     #[tokio::test]
     #[ignore = "needs the network"]
     async fn loadouts_match_census() {
