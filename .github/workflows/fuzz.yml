@@ -1,0 +1,68 @@
+# Fuzzing of the parsers for untrusted input (fuzz/, cargo-fuzz with
+# libFuzzer and AddressSanitizer on nightly Rust). Short runs on changes to the
+# core crate, longer ones weekly. No secrets, read-only token, no caches.
+name: Fuzz
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "crates/ps2-tracker-core/**"
+      - "fuzz/**"
+      - ".github/workflows/fuzz.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "crates/ps2-tracker-core/**"
+      - "fuzz/**"
+      - ".github/workflows/fuzz.yml"
+  schedule:
+    - cron: "17 3 * * 3"
+
+permissions: {}
+
+concurrency:
+  group: fuzz-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_FUZZ_VERSION: "0.13.2"
+
+jobs:
+  fuzz:
+    name: Fuzz (${{ matrix.target }})
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [recursion_pak, nrbf, voicepack_manifest, session_file, ess_message]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          toolchain: nightly
+      - name: cargo-fuzz
+        run: cargo install cargo-fuzz --locked --version "$CARGO_FUZZ_VERSION"
+      - name: Run
+        env:
+          TARGET: ${{ matrix.target }}
+          # weekly run: 10 minutes per target, otherwise 2
+          SECONDS_PER_TARGET: ${{ github.event_name == 'schedule' && '600' || '120' }}
+        run: |
+          mkdir -p "fuzz/corpus/$TARGET"
+          cargo +nightly fuzz run --fuzz-dir fuzz "$TARGET" "fuzz/corpus/$TARGET" -- \
+            -max_total_time="$SECONDS_PER_TARGET" -rss_limit_mb=2048 -timeout=10
+      - name: Crash input
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-crash-${{ matrix.target }}
+          path: fuzz/artifacts/
+          if-no-files-found: ignore
+          retention-days: 14

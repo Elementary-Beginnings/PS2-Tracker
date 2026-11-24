@@ -1,0 +1,57 @@
+# Fuzz targets for the parsers of untrusted input (cargo-fuzz, libFuzzer).
+# Own workspace: not part of the app build, the release or cargo-deny of the
+# main workspace. Run: cargo +nightly fuzz run <target> (see README.md).
+[package]
+name = "ps2-tracker-fuzz"
+version = "0.0.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4.13"
+ps2-tracker-core = { path = "../crates/ps2-tracker-core" }
+
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "recursion_pak"
+path = "fuzz_targets/recursion_pak.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "nrbf"
+path = "fuzz_targets/nrbf.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "voicepack_manifest"
+path = "fuzz_targets/voicepack_manifest.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "session_file"
+path = "fuzz_targets/session_file.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ess_message"
+path = "fuzz_targets/ess_message.rs"
+test = false
+doc = false
+bench = false
