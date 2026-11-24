@@ -5,6 +5,8 @@ after [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.1] – 2026-11-24
+
 ### Fixed
 
 - Windows: signing in to online sync (and the privacy link) opened a File Explorer window instead of the browser. Links now open with the default browser.
