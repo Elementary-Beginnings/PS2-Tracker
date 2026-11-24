@@ -348,6 +348,7 @@ export interface SyncStatus {
   api_base: string;
   privacy_url: string | null;
   client_id_available: boolean;
+  default_api: boolean;
   keyring: "unknown" | "available" | "unavailable";
   keyring_error: string | null;
   signed_in: boolean;

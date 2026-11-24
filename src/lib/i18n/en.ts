@@ -227,12 +227,23 @@ export const en = {
     noKeyring:
       "No system keyring found, so a sign-in cannot be kept. Install or unlock a Secret Service keyring (GNOME Keyring, KWallet) and try again.",
     noClientId: "This build has no Discord client ID for online sync. Official builds have one; for your own build set it under Advanced.",
+    noClientIdOtherApi:
+      "A different API address needs the Discord client ID of that server's application (Advanced). The built-in client ID is used only with stats.elme.games.",
+    otherApi: (base: string) =>
+      `Your Discord sign-in and your sessions go to ${base}, not to stats.elme.games. Use only an address you trust.`,
+    apiBaseConfirmTitle: "Change API address",
+    apiBaseConfirm: (base: string) =>
+      `From now on your Discord sign-in (the authorization code) and your sessions are sent to:\n\n${base}\n\nOnly use an address you trust – whoever runs it gets your sign-in. A sign-in at the previous address is signed out.\n\nChange the API address?`,
+    apiBaseChange: "Change address",
+    defaultApi: "https://stats.elme.games/api/v1 (default)",
     unavailable: "Online sync is not available on the server right now – sessions wait in the queue.",
     advanced: "Advanced",
     apiBase: "API address",
-    apiBaseHint: "Only https:// addresses (http://localhost only in development builds). Each address has its own sign-in.",
+    apiBaseHint:
+      "Only https:// addresses (http://localhost only in development builds). Each address has its own sign-in; changing it signs you out at the previous one.",
     clientId: "Discord client ID",
-    clientIdHint: "Empty = the client ID built into official builds. Must belong to the Discord application of the server above.",
+    clientIdHint:
+      "Empty = the client ID built into official builds (only with stats.elme.games). Any other API address needs the client ID of that server's Discord application.",
     badClientId: "The client ID has 17–20 digits",
   },
   integrations: {

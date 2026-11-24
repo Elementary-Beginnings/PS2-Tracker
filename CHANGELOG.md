@@ -22,6 +22,12 @@ after [SemVer](https://semver.org/).
   switching it on and signing in, the app makes no request to the stats server.
   Changing the API address while a sign-in or token refresh is running never
   hands a token of one server to the other. See the wiki page *Online Sync*.
+- Online sync: more robust handling of server address changes. The built-in
+  Discord client ID is used only with the default address
+  (stats.elme.games); another address needs its own client ID. Changing the
+  address asks for confirmation, says that the sign-in goes to that address,
+  and signs out at the previous one. A notice is shown while another address
+  is set.
 - Flatpak: permission `--talk-name=org.freedesktop.secrets` for the keyring of
   the online sync.
 - Official builds can embed the Discord client ID of the stats server

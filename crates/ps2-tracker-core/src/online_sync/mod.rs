@@ -80,15 +80,28 @@ impl SyncSettings {
         Ok(())
     }
 
-    /// Own client ID, otherwise the built-in one.
+    /// Own client ID, otherwise the built-in one. The built-in ID belongs to
+    /// the application of the default server and is used only with
+    /// [`DEFAULT_API_BASE`]; any other address needs its own client ID, or
+    /// the sign-in stays off.
     pub fn effective_client_id(&self) -> Option<String> {
+        self.client_id_with(built_in_client_id())
+    }
+
+    fn client_id_with(&self, built_in: Option<&str>) -> Option<String> {
         if is_client_id(&self.discord_client_id) {
             Some(self.discord_client_id.clone())
-        } else if self.discord_client_id.is_empty() {
-            built_in_client_id().map(str::to_owned)
+        } else if self.discord_client_id.is_empty() && self.is_default_api() {
+            built_in.map(str::to_owned)
         } else {
             None
         }
+    }
+
+    /// The API address is the default server (compared as parsed URLs, so
+    /// case of the host, a default port or a trailing slash do not matter).
+    pub fn is_default_api(&self) -> bool {
+        is_default_api_base(&self.base())
     }
 
     /// The API base without a trailing slash (empty = default).
@@ -131,6 +144,16 @@ pub fn api_base(url: &str, allow_local_http: bool) -> Result<reqwest::Url, Strin
         return Err("API address must be a plain https:// address".into());
     }
     Ok(u)
+}
+
+/// `base` points to [`DEFAULT_API_BASE`].
+pub fn is_default_api_base(base: &str) -> bool {
+    let norm = |b: &str| {
+        reqwest::Url::parse(b.trim().trim_end_matches('/'))
+            .ok()
+            .map(|u| u.to_string().trim_end_matches('/').to_owned())
+    };
+    norm(base).is_some_and(|b| Some(b) == norm(DEFAULT_API_BASE))
 }
 
 /// The Discord authorization URL of one sign-in (scope `identify`, PKCE S256,
@@ -243,6 +266,50 @@ mod tests {
         assert_ne!(
             keyring_account("https://a.example/api/v1/"),
             keyring_account("https://b.example/api/v1")
+        );
+    }
+
+    #[test]
+    fn default_api_base_is_recognised() {
+        assert!(is_default_api_base(DEFAULT_API_BASE));
+        assert!(is_default_api_base("https://stats.elme.games/api/v1/"));
+        assert!(is_default_api_base("https://STATS.elme.games:443/api/v1"));
+        assert!(!is_default_api_base("https://stats.elme.games/api/v2"));
+        assert!(!is_default_api_base(
+            "https://stats.elme.games.example.org/api/v1"
+        ));
+        assert!(!is_default_api_base("https://example.org/api/v1"));
+        assert!(!is_default_api_base("not a url"));
+        assert!(SyncSettings::default().is_default_api());
+        let empty = SyncSettings {
+            api_base: String::new(),
+            ..SyncSettings::default()
+        };
+        assert!(empty.is_default_api(), "empty means the default");
+    }
+
+    #[test]
+    fn built_in_client_id_only_with_the_default_api() {
+        let other = SyncSettings {
+            api_base: "https://example.org/api/v1".into(),
+            ..SyncSettings::default()
+        };
+        let built_in = test_snowflake('7');
+        assert_eq!(
+            SyncSettings::default().client_id_with(Some(&built_in)),
+            Some(built_in.clone())
+        );
+        // another address never gets the built-in ID: no sign-in without
+        // an own client ID
+        assert_eq!(other.client_id_with(Some(&built_in)), None);
+        assert_eq!(other.effective_client_id(), None);
+        let own = SyncSettings {
+            discord_client_id: test_snowflake('8'),
+            ..other
+        };
+        assert_eq!(
+            own.client_id_with(Some(&built_in)),
+            Some(test_snowflake('8'))
         );
     }
 }

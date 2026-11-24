@@ -91,6 +91,9 @@ struct Inner {
     /// Counts changes of the API address. A sign-in or refresh started for
     /// one address must not hand its tokens to the next one.
     epoch: u64,
+    /// Sign-ins of earlier API addresses still to be ended (revoked at their
+    /// server and removed from the keyring).
+    signouts: Vec<(Option<SyncApi>, Arc<dyn SecretStore>)>,
 }
 
 /// Everything the settings page shows.
@@ -101,6 +104,8 @@ pub struct SyncStatus {
     pub privacy_url: Option<String>,
     /// A Discord client ID is built in or configured.
     pub client_id_available: bool,
+    /// The API address is the default server.
+    pub default_api: bool,
     pub keyring: KeyringState,
     pub keyring_error: Option<String>,
     /// A sign-in is stored (keyring) or active.
@@ -156,6 +161,7 @@ impl SyncWorker {
                 server_unavailable: false,
                 ports: REDIRECT_PORTS.to_vec(),
                 epoch: 0,
+                signouts: Vec::new(),
             }),
             deps,
             refresh_lock: tokio::sync::Mutex::new(()),
@@ -169,11 +175,21 @@ impl SyncWorker {
     }
 
     /// New settings or own characters. A different API address starts over
-    /// with that server's keyring entry.
+    /// with that server's keyring entry; the sign-in at the previous address
+    /// is ended on the next pass.
     pub fn configure(&self, settings: SyncSettings, own: HashSet<u64>) {
         {
             let mut i = lock(&self.inner);
             if settings.base() != i.settings.base() {
+                let may_be_signed_in = match i.auth {
+                    Auth::Stored | Auth::Active { .. } => true,
+                    Auth::Unknown => i.settings.enabled,
+                    Auth::SignedOut => false,
+                };
+                if may_be_signed_in || i.login.is_some() {
+                    let old = (i.api.clone(), i.secret.clone());
+                    i.signouts.push(old);
+                }
                 let base = settings.base();
                 i.api = SyncApi::new(&base).ok();
                 i.secret = (self.deps.secrets)(&super::keyring_account(&base));
@@ -203,6 +219,7 @@ impl SyncWorker {
             privacy_url: privacy_url(&base),
             api_base: base,
             client_id_available: i.settings.effective_client_id().is_some(),
+            default_api: i.settings.is_default_api(),
             keyring: i.keyring,
             keyring_error: i.keyring_error.clone(),
             signed_in: matches!(i.auth, Auth::Stored | Auth::Active { .. }),
@@ -332,6 +349,30 @@ impl SyncWorker {
         }
         self.changed();
         r.map_err(|e| e.to_string())
+    }
+
+    /// Ends the sign-ins of earlier API addresses: the refresh token goes
+    /// back to the server that issued it (best effort), then the keyring
+    /// entry is removed. Runs under the refresh lock, so a refresh that was
+    /// still running for that address has stored its token by then.
+    async fn finish_signouts(&self) {
+        let pending = std::mem::take(&mut lock(&self.inner).signouts);
+        if pending.is_empty() {
+            return;
+        }
+        let _guard = self.refresh_lock.lock().await;
+        for (api, secret) in pending {
+            let s = secret.clone();
+            if let Ok(Some(t)) = blocking(move || s.get()).await
+                && let Some(api) = api
+                && let Err(e) = api.logout(&Token::new(t)).await
+            {
+                tracing::warn!(error = %e, "sign-out at the previous API address not confirmed");
+            }
+            if let Err(e) = blocking(move || secret.delete()).await {
+                tracing::warn!(error = %e, "sign-in of the previous API address not removed");
+            }
+        }
     }
 
     /// Looks into the keyring once (after a start or a change of server).
@@ -487,6 +528,7 @@ impl SyncWorker {
     /// One pass: restores the sign-in if needed and uploads due entries.
     /// Returns the number of attempts made.
     pub async fn step(&self, now: i64) -> usize {
+        self.finish_signouts().await;
         if !lock(&self.inner).settings.enabled {
             return 0;
         }
@@ -740,7 +782,8 @@ impl SyncWorker {
             .await
             .map_err(|e| login_error(&e))?;
         let refresh = r.refresh_token.expose().to_owned();
-        if let Err(e) = blocking(move || secret.set(&refresh)).await {
+        let s = secret.clone();
+        if let Err(e) = blocking(move || s.set(&refresh)).await {
             self.set_keyring(&Err(e.clone()));
             // do not leave a live sign-in on the server that nobody holds
             let _ = api.logout(&r.refresh_token).await;
@@ -749,7 +792,11 @@ impl SyncWorker {
         {
             let mut i = lock(&self.inner);
             if i.epoch != epoch {
-                // kept for the old address; the new one needs its own sign-in
+                // not kept: ended at the old address on the next pass; the
+                // new address needs its own sign-in
+                i.signouts.push((Some(api), secret));
+                drop(i);
+                self.changed();
                 return Err("the API address changed during the sign-in – sign in again".into());
             }
             i.auth = Auth::Active {
@@ -1286,7 +1333,8 @@ mod tests {
         assert_eq!(get(&account_b), None);
         assert!(!w.status().signed_in, "not signed in at server B");
 
-        // the next pass talks to server B without any token of server A
+        // the next pass ends the sign-in at server A and talks to server B
+        // without any token of server A
         w.step(T0 + 1).await;
         for q in srv_b.requests() {
             let auth = q.header("authorization").unwrap_or("");
@@ -1296,6 +1344,13 @@ mod tests {
             );
         }
         assert!(srv_b.requests().is_empty(), "signed out at B: no request");
+        let logout = srv_a
+            .requests()
+            .into_iter()
+            .find(|q| q.path == "/auth/logout")
+            .expect("sign-out at server A");
+        assert!(logout.body.contains("ref-a1"), "{logout:?}");
+        assert_eq!(get(&account_a), None, "entry of server A removed");
     }
 
     #[tokio::test]
@@ -1342,8 +1397,61 @@ mod tests {
         let get = |a: &str| map.lock().unwrap().get(a).and_then(|s| s.get().unwrap());
         let account_a = super::super::keyring_account(&srv_a.base);
         let account_b = super::super::keyring_account(&srv_b.base);
-        assert_eq!(get(&account_a).as_deref(), Some("ref-a1"));
         assert_eq!(get(&account_b), None);
         assert!(!w.status().signed_in);
+        // the next pass ends that sign-in at server A, never at B
+        w.step(T0).await;
+        assert_eq!(get(&account_a), None, "not kept for server A");
+        assert!(srv_a.requests().iter().any(|q| q.path == "/auth/logout"));
+        assert!(srv_b.requests().is_empty());
+    }
+
+    #[tokio::test]
+    async fn changing_the_api_address_signs_out_at_the_previous_one() {
+        let srv_a = start(Arc::new(|r: &Request| match r.path.as_str() {
+            "/auth/logout" => Response::empty(204),
+            _ => Response::empty(500),
+        }))
+        .await;
+        let srv_b = start(Arc::new(|_: &Request| Response::empty(500))).await;
+        let (secrets, map) = per_account_secrets();
+        let deps = Deps {
+            store: Arc::new(Store::in_memory().unwrap()),
+            names: Arc::new(Mutex::new(NameCache::default())),
+            secrets: secrets.clone(),
+            open_browser: no_browser(),
+            on_change: Arc::new(|| {}),
+        };
+        let settings = SyncSettings {
+            enabled: true,
+            api_base: srv_a.base.clone(),
+            discord_client_id: crate::online_sync::test_snowflake('7'),
+        };
+        let account_a = super::super::keyring_account(&srv_a.base);
+        let account_b = super::super::keyring_account(&srv_b.base);
+        secrets(&account_a).set("ref-a0").unwrap();
+        let w = SyncWorker::new(deps, settings.clone(), HashSet::from([ME]));
+        w.step(T0).await;
+        assert!(w.status().signed_in, "sign-in at A restored");
+
+        w.configure(
+            SyncSettings {
+                api_base: srv_b.base.clone(),
+                ..settings
+            },
+            HashSet::from([ME]),
+        );
+        w.step(T0 + 1).await;
+        let get = |a: &str| map.lock().unwrap().get(a).and_then(|s| s.get().unwrap());
+        assert_eq!(get(&account_a), None, "entry of server A removed");
+        assert_eq!(get(&account_b), None);
+        let reqs = srv_a.requests();
+        assert_eq!(reqs.len(), 1, "{reqs:?}");
+        assert_eq!(reqs[0].path, "/auth/logout");
+        assert!(reqs[0].body.contains("ref-a0"));
+        assert!(srv_b.requests().is_empty(), "nothing of A goes to B");
+        let st = w.status();
+        assert!(!st.signed_in);
+        assert!(!st.default_api);
     }
 }

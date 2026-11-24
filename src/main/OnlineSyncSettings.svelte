@@ -1,7 +1,7 @@
 <script lang="ts">
   // Settings → Online sync. Off by default; nothing is sent to the stats
   // server until it is switched on and the user signed in.
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { ask } from "@tauri-apps/plugin-dialog";
   import { t } from "../lib/i18n";
   import { api, errorText, inTauri, on } from "../lib/api";
@@ -15,6 +15,12 @@
   let showAdvanced = $state(false);
   const o = $derived(config.online_sync);
   const idOk = $derived(o.discord_client_id === "" || /^\d{17,20}$/.test(o.discord_client_id));
+  // the address saved last, to tell a change and to undo a cancelled one
+  let savedBase = $state(untrack(() => config.online_sync.api_base));
+
+  function normBase(b: string): string {
+    return b.trim().replace(/\/+$/, "");
+  }
 
   async function refresh() {
     if (!inTauri()) return;
@@ -51,7 +57,21 @@
       notify(t.onlineSync.badClientId, true);
       return;
     }
+    if (normBase(o.api_base) !== normBase(savedBase)) {
+      // sign-in data goes to the new address: say so before saving
+      const shown = normBase(o.api_base) || t.onlineSync.defaultApi;
+      const ok = await ask(t.onlineSync.apiBaseConfirm(shown), {
+        title: t.onlineSync.apiBaseConfirmTitle,
+        kind: "warning",
+        okLabel: t.onlineSync.apiBaseChange,
+      });
+      if (!ok) {
+        o.api_base = savedBase;
+        return;
+      }
+    }
     await save();
+    savedBase = o.api_base;
     await refresh();
   }
 
@@ -120,6 +140,9 @@
   </div>
   <label class="check"><input type="checkbox" checked={o.enabled} onchange={toggle} /> {t.onlineSync.enable}</label>
 
+  {#if status && !status.default_api}
+    <p class="hint small warn" role="note">{t.onlineSync.otherApi(status.api_base)}</p>
+  {/if}
   {#if o.enabled && status}
     {#if status.server_unavailable}<p class="hint small warn">{t.onlineSync.unavailable}</p>{/if}
     {#if status.keyring === "unavailable"}<p class="hint small warn">{t.onlineSync.noKeyring}</p>{/if}
@@ -146,7 +169,7 @@
         <button class="danger" onclick={deleteAccount}>{t.onlineSync.deleteAccount}</button>
       </div>
     {:else if !status.client_id_available}
-      <p class="hint small warn">{t.onlineSync.noClientId}</p>
+      <p class="hint small warn">{status.default_api ? t.onlineSync.noClientId : t.onlineSync.noClientIdOtherApi}</p>
     {:else}
       <div class="row">
         {#if status.login_pending || busy}

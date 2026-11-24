@@ -100,10 +100,15 @@ The privacy policy of the stats server is linked in the settings
 
 - **API address** – default `https://stats.elme.games/api/v1`. Only `https://`
   addresses are accepted (plain `http://localhost` only in development builds).
-  Each address has its own sign-in in the keyring.
-- **Discord client ID** – empty uses the ID built into official builds. Builds
-  without one (self-built) need the client ID of the server's Discord
-  application to sign in.
+  Your Discord sign-in and your sessions go to this address, so use only one
+  you trust; the app asks before it saves a new address and shows a notice
+  while another address than the default is set. Each address has its own
+  sign-in in the keyring; changing the address signs you out at the previous
+  one (revoked there, keyring entry deleted).
+- **Discord client ID** – empty uses the ID built into official builds, and
+  only together with the default API address. Any other address, and builds
+  without a built-in ID (self-built), need the client ID of that server's
+  Discord application; without it the sign-in stays off.
 
 Configuration (`config.toml`):
 

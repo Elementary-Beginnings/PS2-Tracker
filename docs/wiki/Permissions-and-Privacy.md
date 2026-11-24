@@ -149,6 +149,12 @@ Off by default (`[online_sync] enabled = false`). Details for users:
   a session deletes its row.
 - **API address:** changeable, `https://` only (`http://localhost` only in debug
   builds; `online_sync::api_base`). Each address has its own keyring entry.
+  Changing it asks first and signs out at the previous address (`worker.rs`,
+  `configure`/`finish_signouts`; test
+  `changing_the_api_address_signs_out_at_the_previous_one`). The built-in
+  Discord client ID is used only with the default address
+  (`SyncSettings::effective_client_id`); another address needs its own client
+  ID, otherwise the sign-in stays off.
 - **Deleting:** *Sign out* (`POST /auth/logout`, keyring entry deleted),
   *Delete my online data…* (`DELETE /me`: account and all uploaded sessions on
   the server).
