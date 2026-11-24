@@ -213,7 +213,8 @@ export const en = {
     noCharacters: "No ELME character linked – verify in the ELME Discord.",
     uploadsClosed: (when: string) =>
       `Uploads are closed: no ELME character is linked to your account any more. Your uploaded data will be deleted on ${when} unless you are verified again.`,
-    stored: (n: number, size: string) => `${n} session(s) stored online (${size})`,
+    stored: (n: number, size: string, quota: string | null) =>
+      quota ? `${n} session(s) stored online (${size} of ${quota})` : `${n} session(s) stored online (${size})`,
     queue: (q: number, f: number, s: number) => `Queue: ${q} waiting, ${f} failed, ${s} synced`,
     uploadExisting: "Upload existing sessions…",
     uploadExistingConfirm:

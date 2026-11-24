@@ -47,6 +47,10 @@ pub struct Storage {
     pub sessions: u64,
     #[serde(default)]
     pub bytes: u64,
+    /// How much the account may store (compressed); older servers do not
+    /// send it.
+    #[serde(default)]
+    pub quota_bytes: Option<u64>,
 }
 
 /// The signed-in account (`GET /me`, also part of every sign-in/refresh).

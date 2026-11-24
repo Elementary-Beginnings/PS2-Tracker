@@ -33,6 +33,11 @@ after [SemVer](https://semver.org/).
   error.
 - Online sign-in: the local sign-in page serves connections side by side with
   a shorter read timeout, so the browser's return is answered right away.
+- Online sync: when the stats server has not confirmed the character link yet,
+  the settings say so and the sign-in is kept; the tracker asks again after
+  15 minutes. A full storage quota marks the session as failed with the
+  reason (not retried by itself). The settings show the storage quota next to
+  the used space when the server sends it.
 - Online sign-in: the local sign-in ports are 47831, 47832 and 47833, apart
   from the default port of the OBS endpoint (47823).
 - Flatpak: permission `--talk-name=org.freedesktop.secrets` for the keyring of

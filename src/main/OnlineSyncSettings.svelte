@@ -160,7 +160,11 @@
             {t.onlineSync.noCharacters}
           {/if}
         </div>
-        <p class="small muted">{t.onlineSync.stored(status.account.storage.sessions, size(status.account.storage.bytes))}</p>
+        <p class="small muted">{t.onlineSync.stored(
+            status.account.storage.sessions,
+            size(status.account.storage.bytes),
+            status.account.storage.quota_bytes ? size(status.account.storage.quota_bytes) : null,
+          )}</p>
       {/if}
       <p class="small muted">{t.onlineSync.queue(status.counts.queued, status.counts.failed, status.counts.synced)}</p>
       <div class="row">

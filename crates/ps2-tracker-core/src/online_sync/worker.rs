@@ -35,6 +35,8 @@ const PASS_LIMIT: u32 = 20;
 const IDLE_SECS: i64 = 60;
 /// An access token this close to its end is refreshed first.
 const EXPIRY_MARGIN_SECS: i64 = 60;
+/// Pause before the next refresh after 403 `link_unconfirmed`.
+const LINK_RETRY_SECS: i64 = 15 * 60;
 
 pub type SecretFactory = Arc<dyn Fn(&str) -> Arc<dyn SecretStore> + Send + Sync>;
 pub type BrowserOpener = Arc<dyn Fn(&str) -> Result<(), String> + Send + Sync>;
@@ -94,6 +96,9 @@ struct Inner {
     /// Sign-ins of earlier API addresses still to be ended (revoked at their
     /// server and removed from the keyring).
     signouts: Vec<(Option<SyncApi>, Arc<dyn SecretStore>)>,
+    /// No refresh before this time (403 `link_unconfirmed`: the server is
+    /// asked again later, the refresh token is kept).
+    refresh_paused_until: Option<i64>,
 }
 
 /// Everything the settings page shows.
@@ -162,6 +167,7 @@ impl SyncWorker {
                 ports: REDIRECT_PORTS.to_vec(),
                 epoch: 0,
                 signouts: Vec::new(),
+                refresh_paused_until: None,
             }),
             deps,
             refresh_lock: tokio::sync::Mutex::new(()),
@@ -197,6 +203,7 @@ impl SyncWorker {
                 i.account = None;
                 i.last_error = None;
                 i.server_unavailable = false;
+                i.refresh_paused_until = None;
                 i.epoch += 1;
             }
             i.settings = settings;
@@ -425,6 +432,13 @@ impl SyncWorker {
                 Auth::SignedOut | Auth::Unknown => return Err(NoToken::SignedOut),
                 _ => {}
             }
+            if i.refresh_paused_until.is_some_and(|t| now < t) {
+                return Err(NoToken::Failed(
+                    i.last_error
+                        .clone()
+                        .unwrap_or_else(|| LINK_UNCONFIRMED.into()),
+                ));
+            }
             (i.api.clone(), i.secret.clone(), i.epoch)
         };
         let api =
@@ -478,9 +492,22 @@ impl SyncWorker {
                     i.account = Some(r.account);
                     i.server_unavailable = false;
                     i.last_error = None;
+                    i.refresh_paused_until = None;
                 }
                 self.changed();
                 Ok((r.access_token, api))
+            }
+            // the refresh token stays valid (not rotated): keep it and ask
+            // again later instead of every pass
+            Err(e) if e.status() == Some(403) && error_code(&e) == Some("link_unconfirmed") => {
+                if self.same_epoch(epoch) {
+                    let mut i = lock(&self.inner);
+                    i.refresh_paused_until = Some(now + LINK_RETRY_SECS);
+                    i.last_error = Some(LINK_UNCONFIRMED.into());
+                    drop(i);
+                    self.changed();
+                }
+                Err(NoToken::Failed(LINK_UNCONFIRMED.into()))
             }
             Err(e) if e.status() == Some(401) => {
                 if self.same_epoch(epoch) {
@@ -806,6 +833,7 @@ impl SyncWorker {
             i.account = Some(r.account);
             i.last_error = None;
             i.server_unavailable = false;
+            i.refresh_paused_until = None;
         }
         Ok(())
     }
@@ -860,12 +888,23 @@ enum Judged {
 }
 
 /// Sign-in error → message for the user.
-fn login_error(e: &ApiError) -> String {
-    let code = match e {
+/// The server knows the account's ELME characters, but the staff has not
+/// confirmed the link yet (sign-in and refresh answer 403 `link_unconfirmed`).
+pub const LINK_UNCONFIRMED: &str = "your ELME character link is not confirmed yet. \
+     Ask the ELME staff in the ELME Discord to confirm it; the tracker tries again later.";
+
+fn error_code(e: &ApiError) -> Option<&str> {
+    match e {
         ApiError::Status { code, .. } => code.as_deref(),
         _ => None,
-    };
-    match (e.status(), code) {
+    }
+}
+
+fn login_error(e: &ApiError) -> String {
+    match (e.status(), error_code(e)) {
+        (Some(403), Some("link_unconfirmed")) => "your ELME character link is not confirmed \
+             yet. Ask the ELME staff in the ELME Discord to confirm it, then sign in again."
+            .into(),
         (Some(403), _) => "your Discord account is not linked to an ELME character. \
                             Verify in the ELME Discord first, then sign in again."
             .into(),
@@ -1210,6 +1249,103 @@ mod tests {
         let e = r.store.sync_entry(id).unwrap().unwrap();
         assert_eq!((e.state, e.attempts), (SyncState::Queued, 0));
         assert!(!r.worker.status().account.unwrap().upload_allowed);
+    }
+
+    #[tokio::test]
+    async fn unconfirmed_link_keeps_the_sign_in_and_waits() {
+        let srv = start(Arc::new(|r: &Request| match r.path.as_str() {
+            "/auth/refresh" => Response::json(
+                403,
+                json!({"error": "link_unconfirmed", "message": "ask the staff"}),
+            ),
+            "/auth/discord" => Response::json(
+                403,
+                json!({"error": "link_unconfirmed", "message": "ask the staff"}),
+            ),
+            _ => Response::empty(500),
+        }))
+        .await;
+        let r = rig(&srv.base, MemorySecret::default(), no_browser());
+        r.secret.set("ref").unwrap();
+        let id = ended_session(&r.store, ME, T0);
+        r.worker.session_finished(id, ME, T0);
+        assert_eq!(r.worker.step(T0).await, 0);
+        // not signed out: the refresh token stays, the queue waits
+        let st = r.worker.status();
+        assert!(st.signed_in, "still signed in");
+        assert!(st.last_error.unwrap().contains("not confirmed"));
+        assert_eq!(r.secret.get().unwrap().as_deref(), Some("ref"));
+        let e = r.store.sync_entry(id).unwrap().unwrap();
+        assert_eq!((e.state, e.attempts), (SyncState::Queued, 0));
+        let refreshes = |srv: &super::super::api::mock::MockServer| {
+            srv.requests()
+                .iter()
+                .filter(|q| q.path == "/auth/refresh")
+                .count()
+        };
+        assert_eq!(refreshes(&srv), 1);
+        // the server is not asked again on every pass
+        r.worker.step(T0 + 60).await;
+        r.worker.step(T0 + LINK_RETRY_SECS - 1).await;
+        assert_eq!(refreshes(&srv), 1);
+        // but again after the pause
+        r.worker.step(T0 + LINK_RETRY_SECS).await;
+        assert_eq!(refreshes(&srv), 2);
+        assert_eq!(r.secret.get().unwrap().as_deref(), Some("ref"));
+        assert!(!srv.requests().iter().any(|q| q.method == "PUT"));
+    }
+
+    #[tokio::test]
+    async fn sign_in_with_an_unconfirmed_link() {
+        let srv = start(Arc::new(|_: &Request| {
+            Response::json(403, json!({"error": "link_unconfirmed"}))
+        }))
+        .await;
+        let r = rig(
+            &srv.base,
+            MemorySecret::default(),
+            approving_browser(Arc::new(Mutex::new(None))),
+        );
+        let e = r.worker.login(t0).await.unwrap_err();
+        assert!(e.contains("not confirmed"), "{e}");
+        assert!(e.contains("ELME staff"), "{e}");
+        assert!(!r.worker.status().signed_in);
+        assert_eq!(r.secret.get().unwrap(), None);
+    }
+
+    #[tokio::test]
+    async fn full_storage_fails_the_entry_without_retry() {
+        let srv = start(Arc::new(|r: &Request| {
+            match (r.method.as_str(), r.path.as_str()) {
+                ("POST", "/auth/refresh") => {
+                    let mut a = auth("acc", "ref");
+                    a["account"]["storage"]["quota_bytes"] = json!(524_288_000u64);
+                    Response::json(200, a)
+                }
+                ("PUT", _) => Response::json(
+                    413,
+                    json!({"error": "quota_exceeded", "message": "delete old sessions first"}),
+                ),
+                _ => Response::empty(404),
+            }
+        }))
+        .await;
+        let r = rig(&srv.base, MemorySecret::default(), no_browser());
+        r.secret.set("ref").unwrap();
+        let id = ended_session(&r.store, ME, T0);
+        r.worker.session_finished(id, ME, T0);
+        assert_eq!(r.worker.step(T0).await, 1);
+        let e = r.store.sync_entry(id).unwrap().unwrap();
+        assert_eq!(e.state, SyncState::Failed);
+        assert!(e.last_error.unwrap().contains("quota_exceeded"));
+        // not repeated by itself
+        r.worker.step(T0 + 7200).await;
+        let puts = srv.requests().iter().filter(|q| q.method == "PUT").count();
+        assert_eq!(puts, 1);
+        assert_eq!(
+            r.worker.status().account.unwrap().storage.quota_bytes,
+            Some(524_288_000)
+        );
     }
 
     /// The app spawns these futures on its multi-threaded runtime.

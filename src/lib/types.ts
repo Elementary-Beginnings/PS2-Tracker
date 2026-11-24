@@ -340,7 +340,7 @@ export interface SyncAccount {
   upload_allowed: boolean;
   membership_lost_at: number | null;
   purge_at: number | null;
-  storage: { sessions: number; bytes: number };
+  storage: { sessions: number; bytes: number; quota_bytes?: number | null };
 }
 
 export interface SyncStatus {

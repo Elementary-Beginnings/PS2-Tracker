@@ -56,8 +56,8 @@ Uploads run in the background, one after the other, with their own connection;
 they never delay the Census requests or the user interface. Network errors and
 server errors are retried with a growing pause (30 s up to 1 h); when the server
 asks to slow down (HTTP 429), the tracker waits as long as the server says
-(`Retry-After`). Rejections (character not linked, file too large, invalid
-session) are not repeated automatically.
+(`Retry-After`). Rejections (character not linked, file too large, storage quota
+of the account used up, invalid session) are not repeated automatically.
 
 ## Sign-in and keyring
 
@@ -78,6 +78,10 @@ session) are not repeated automatically.
 - **No keyring, no sign-in:** if no keyring is available (or it refuses
   access), the tracker does not sign in and shows why. It never falls back to a
   file. Install or unlock a keyring and try again.
+- **Link not confirmed yet:** the server accepts only character links the ELME
+  staff has confirmed. Until then the sign-in is refused with a hint; a sign-in
+  that already exists is kept, uploads wait, and the tracker asks the server
+  again every 15 minutes. Ask the staff in the ELME Discord to confirm the link.
 - Flatpak: the app may talk to `org.freedesktop.secrets` on the session bus for
   this (see [Permissions and Privacy](Permissions-and-Privacy#flatpak)).
 
