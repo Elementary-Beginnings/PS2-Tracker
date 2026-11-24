@@ -89,6 +89,31 @@ In the move mode (Ctrl+F2) the pop-up is still shown for positioning. If it
 still happens, the log line `popup placed … reason="pop-up start"` (debug
 mode) and the next `hidden: no pop-up active` help to narrow it down.
 
+## No tray icon (GNOME)
+
+GNOME Shell shows tray icons only with an extension such as *AppIndicator and
+KStatusNotifierItem Support* (preinstalled on Ubuntu, not on Fedora or plain
+GNOME). Without it the app detects that no tray host is running: closing the
+main window then quits the app instead of hiding it, and *Start in the tray*
+opens the window. With the extension installed, the tray works as on other
+desktops. Since 1.2.2 a missing tray library (`libayatana-appindicator3`) no
+longer stops the app from starting; the log says `tray icon not available`.
+
+## Overlay on GNOME
+
+Overlay and crosshair are tested on KDE Plasma (X11 and Wayland through
+XWayland) and Windows. On GNOME they also run through XWayland; whether GNOME
+keeps them above a fullscreen game has not been verified. If they disappear,
+set PlanetSide 2 to *Windowed Fullscreen* or *Borderless* and report it with
+the log (debug mode).
+
+## Hotkeys under Wayland
+
+Global hotkeys need an X server (XWayland). In a Wayland session without
+XWayland the Overlay page lists them as not registered; bind the command line
+switches (`ps2-tracker --toggle-overlay` and others) to desktop shortcuts, see
+[Hotkeys](Hotkeys).
+
 ## Ctrl+F2 does nothing
 
 KWin binds Ctrl+F2 to “Switch to Desktop 2” by default. Free it or choose
@@ -106,6 +131,11 @@ or damage events for infantry, see [Crosshair](Crosshair#hit-feedback).
 
 **Do I need my own Census service ID?** Not with official builds, see
 [Getting Started](Getting-Started#census-service-id).
+
+**The CSV export opens in one column in Excel.** Excel uses the list
+separator of the Windows region (`;` in many European languages) and reads a
+CSV without byte order mark as ANSI. Use the Excel export (.xlsx), or import
+the CSV through *Data → From Text/CSV* with comma and UTF-8.
 
 **Why does Windows SmartScreen warn?** The installer is not code-signed;
 compare the checksum, see [Installation](Installation#windows-1011).

@@ -28,6 +28,10 @@ kills, session time and optionally continent and server. Off by default.
 - The built-in application ID (`PS2_DEFAULT_DISCORD_APP_ID` at build time) is a
   public client ID, not a secret.
 - Flatpak: only `xdg-run/discord-ipc-0` and `xdg-run/discord-ipc-1` are
-  allowed.
+  allowed. That reaches a natively installed Discord. Whether it reaches the
+  Discord Flatpak (its socket lives under `xdg-run/app/com.discordapp.Discord/`)
+  has not been verified; if not, allow that folder for this app, e.g. with
+  Flatseal or `flatpak override --user
+  --filesystem=xdg-run/app/com.discordapp.Discord:create dev.herz.Ps2Tracker`.
 
 Details: [Permissions and Privacy](Permissions-and-Privacy#discord-optional-local).
