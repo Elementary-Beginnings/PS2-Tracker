@@ -88,6 +88,9 @@ struct Inner {
     /// The server answered 503 `sync_disabled`/`unavailable` last time.
     server_unavailable: bool,
     ports: Vec<u16>,
+    /// Counts changes of the API address. A sign-in or refresh started for
+    /// one address must not hand its tokens to the next one.
+    epoch: u64,
 }
 
 /// Everything the settings page shows.
@@ -152,6 +155,7 @@ impl SyncWorker {
                 last_error: None,
                 server_unavailable: false,
                 ports: REDIRECT_PORTS.to_vec(),
+                epoch: 0,
             }),
             deps,
             refresh_lock: tokio::sync::Mutex::new(()),
@@ -177,6 +181,7 @@ impl SyncWorker {
                 i.account = None;
                 i.last_error = None;
                 i.server_unavailable = false;
+                i.epoch += 1;
             }
             i.settings = settings;
             i.own = own;
@@ -294,13 +299,6 @@ impl SyncWorker {
         Ok(n)
     }
 
-    fn api(&self) -> Result<SyncApi, String> {
-        lock(&self.inner)
-            .api
-            .clone()
-            .ok_or_else(|| "online sync: HTTP client not available".into())
-    }
-
     fn secret(&self) -> Arc<dyn SecretStore> {
         lock(&self.inner).secret.clone()
     }
@@ -354,47 +352,84 @@ impl SyncWorker {
         self.changed();
     }
 
-    /// A valid access token, refreshing it with the stored refresh token if
-    /// needed (one refresh at a time: refresh tokens are single use).
-    async fn access_token(&self, now: i64) -> Result<Token, NoToken> {
+    /// The client, keyring entry and epoch of the current API address, read
+    /// together.
+    fn target(&self) -> (Option<SyncApi>, Arc<dyn SecretStore>, u64) {
+        let i = lock(&self.inner);
+        (i.api.clone(), i.secret.clone(), i.epoch)
+    }
+
+    fn same_epoch(&self, epoch: u64) -> bool {
+        lock(&self.inner).epoch == epoch
+    }
+
+    /// A valid access token and the client of the server it belongs to,
+    /// refreshing it with the stored refresh token if needed (one refresh at
+    /// a time: refresh tokens are single use). If the API address changes
+    /// meanwhile, the rotated refresh token is kept in the entry of the old
+    /// address and no token is returned.
+    async fn access_token(&self, now: i64) -> Result<(Token, SyncApi), NoToken> {
         let _guard = self.refresh_lock.lock().await;
-        match &lock(&self.inner).auth {
-            Auth::Active { access, expires_at } if *expires_at - EXPIRY_MARGIN_SECS > now => {
-                return Ok(access.clone());
+        let (api, secret, epoch) = {
+            let i = lock(&self.inner);
+            match &i.auth {
+                Auth::Active { access, expires_at } if *expires_at - EXPIRY_MARGIN_SECS > now => {
+                    return match &i.api {
+                        Some(api) => Ok((access.clone(), api.clone())),
+                        None => Err(NoToken::Failed(
+                            "online sync: HTTP client not available".into(),
+                        )),
+                    };
+                }
+                Auth::SignedOut | Auth::Unknown => return Err(NoToken::SignedOut),
+                _ => {}
             }
-            Auth::SignedOut | Auth::Unknown => return Err(NoToken::SignedOut),
-            _ => {}
-        }
-        let secret = self.secret();
-        let stored = blocking(move || secret.get()).await;
+            (i.api.clone(), i.secret.clone(), i.epoch)
+        };
+        let api =
+            api.ok_or_else(|| NoToken::Failed("online sync: HTTP client not available".into()))?;
+        let s = secret.clone();
+        let stored = blocking(move || s.get()).await;
         let refresh = match stored {
             Ok(Some(t)) => Token::new(t),
             Ok(None) => {
-                lock(&self.inner).auth = Auth::SignedOut;
-                self.changed();
+                if self.same_epoch(epoch) {
+                    lock(&self.inner).auth = Auth::SignedOut;
+                    self.changed();
+                }
                 return Err(NoToken::SignedOut);
             }
             Err(e) => {
-                self.set_keyring(&Err(e.clone()));
+                if self.same_epoch(epoch) {
+                    self.set_keyring(&Err(e.clone()));
+                }
                 return Err(NoToken::Failed(e.to_string()));
             }
         };
-        let api = self.api().map_err(NoToken::Failed)?;
         match api.refresh(&refresh).await {
             Ok(r) => {
-                let secret = self.secret();
+                // into the entry of the server that issued it, whatever the
+                // settings say now
+                let s = secret.clone();
                 let new_refresh = r.refresh_token.expose().to_owned();
-                if let Err(e) = blocking(move || secret.set(&new_refresh)).await {
+                if let Err(e) = blocking(move || s.set(&new_refresh)).await {
                     // the old token is dead now; without the new one the
                     // sign-in cannot continue
-                    self.set_keyring(&Err(e.clone()));
-                    let _ = self
-                        .forget_sign_in(Some(format!("sign-in not kept: {e}")))
-                        .await;
+                    if self.same_epoch(epoch) {
+                        self.set_keyring(&Err(e.clone()));
+                        let _ = self
+                            .forget_sign_in(Some(format!("sign-in not kept: {e}")))
+                            .await;
+                    }
                     return Err(NoToken::SignedOut);
                 }
                 {
                     let mut i = lock(&self.inner);
+                    if i.epoch != epoch {
+                        return Err(NoToken::Failed(
+                            "the API address changed during the token refresh".into(),
+                        ));
+                    }
                     i.auth = Auth::Active {
                         access: r.access_token.clone(),
                         expires_at: now + r.access_expires_in.max(0),
@@ -404,18 +439,24 @@ impl SyncWorker {
                     i.last_error = None;
                 }
                 self.changed();
-                Ok(r.access_token)
+                Ok((r.access_token, api))
             }
             Err(e) if e.status() == Some(401) => {
-                let _ = self
-                    .forget_sign_in(Some(
-                        "your sign-in has expired or was revoked – sign in again".into(),
-                    ))
-                    .await;
+                if self.same_epoch(epoch) {
+                    let _ = self
+                        .forget_sign_in(Some(
+                            "your sign-in has expired or was revoked – sign in again".into(),
+                        ))
+                        .await;
+                } else {
+                    let _ = blocking(move || secret.delete()).await;
+                }
                 Err(NoToken::SignedOut)
             }
             Err(e) => {
-                self.note_error(&e);
+                if self.same_epoch(epoch) {
+                    self.note_error(&e);
+                }
                 Err(NoToken::Failed(e.to_string()))
             }
         }
@@ -463,7 +504,8 @@ impl SyncWorker {
         if due.is_empty() {
             return 0;
         }
-        let mut token = match self.access_token(now).await {
+        // the token and the client of the same server
+        let (mut token, api) = match self.access_token(now).await {
             Ok(t) => t,
             Err(_) => return 0,
         };
@@ -475,10 +517,6 @@ impl SyncWorker {
             // membership lost: uploads are closed, the queue waits
             return 0;
         }
-        let api = match self.api() {
-            Ok(a) => a,
-            Err(_) => return 0,
-        };
         let mut attempts = 0;
         for d in due {
             let check = {
@@ -506,7 +544,9 @@ impl SyncWorker {
                         // once: refresh and try again
                         self.drop_access();
                         match self.access_token(now).await {
-                            Ok(t) => {
+                            // another server now: stop, the next pass starts over
+                            Ok((_, a)) if a.base() != api.base() => return attempts,
+                            Ok((t, _)) => {
                                 token = t;
                                 r = api.upload(&token, d.character_id, d.started_at, body).await;
                             }
@@ -673,8 +713,11 @@ impl SyncWorker {
         cancel: Arc<Notify>,
         now: fn() -> i64,
     ) -> Result<(), String> {
-        let secret = self.secret();
-        let probe = blocking(move || secret.probe()).await;
+        // the server and keyring entry of the address the sign-in starts with
+        let (api, secret, epoch) = self.target();
+        let api = api.ok_or("online sync: HTTP client not available")?;
+        let s = secret.clone();
+        let probe = blocking(move || s.probe()).await;
         self.set_keyring(&probe);
         if let Err(e) = probe {
             return Err(format!(
@@ -692,12 +735,10 @@ impl SyncWorker {
             r = lb.wait(&state, Duration::from_secs(LOGIN_TIMEOUT_SECS)) => r.map_err(|e| e.to_string())?,
             _ = cancel.notified() => return Err("sign-in cancelled".into()),
         };
-        let api = self.api()?;
         let r = api
             .exchange(&code, &p.verifier, &redirect)
             .await
             .map_err(|e| login_error(&e))?;
-        let secret = self.secret();
         let refresh = r.refresh_token.expose().to_owned();
         if let Err(e) = blocking(move || secret.set(&refresh)).await {
             self.set_keyring(&Err(e.clone()));
@@ -707,6 +748,10 @@ impl SyncWorker {
         }
         {
             let mut i = lock(&self.inner);
+            if i.epoch != epoch {
+                // kept for the old address; the new one needs its own sign-in
+                return Err("the API address changed during the sign-in – sign in again".into());
+            }
             i.auth = Auth::Active {
                 access: r.access_token,
                 expires_at: now() + r.access_expires_in.max(0),
@@ -727,10 +772,11 @@ impl SyncWorker {
     /// Signs out: revokes the sign-in on the server (best effort) and
     /// deletes the keyring entry.
     pub async fn logout(&self) -> Result<SyncStatus, String> {
-        let secret = self.secret();
+        // the refresh token goes back only to the server it belongs to
+        let (api, secret, _) = self.target();
         let stored = blocking(move || secret.get()).await;
         if let Ok(Some(t)) = stored
-            && let Ok(api) = self.api()
+            && let Some(api) = api
             && let Err(e) = api.logout(&Token::new(t)).await
         {
             tracing::warn!(error = %e, "sign-out not confirmed by the stats server");
@@ -743,13 +789,12 @@ impl SyncWorker {
     /// signs out locally and forgets the local sync states.
     pub async fn delete_account(&self, now: i64) -> Result<SyncStatus, String> {
         self.restore().await;
-        let token = match self.access_token(now).await {
+        let (token, api) = match self.access_token(now).await {
             Ok(t) => t,
             Err(NoToken::SignedOut) => return Err("sign in first".into()),
             Err(NoToken::Failed(e)) => return Err(e),
         };
-        self.api()?
-            .delete_account(&token)
+        api.delete_account(&token)
             .await
             .map_err(|e| e.to_string())?;
         if let Err(e) = self.deps.store.sync_clear() {
@@ -793,6 +838,8 @@ mod tests {
     use crate::online_sync::queue::SyncState;
     use crate::session::Session;
     use serde_json::json;
+    use std::collections::HashMap;
+    use std::sync::OnceLock;
     use std::sync::atomic::{AtomicUsize, Ordering};
 
     const ME: u64 = 5428000000000000001;
@@ -1172,5 +1219,131 @@ mod tests {
         assert!(e.contains("cancelled"), "{e}");
         assert!(!r.worker.status().login_pending);
         assert!(srv.requests().is_empty());
+    }
+
+    /// Keyring entries per account (one per API address), for tests that
+    /// switch the server.
+    type SecretMap = Arc<Mutex<HashMap<String, Arc<MemorySecret>>>>;
+
+    fn per_account_secrets() -> (SecretFactory, SecretMap) {
+        let map: SecretMap = Arc::default();
+        let m2 = map.clone();
+        let f: SecretFactory = Arc::new(move |account| {
+            m2.lock()
+                .unwrap()
+                .entry(account.to_owned())
+                .or_default()
+                .clone() as Arc<dyn SecretStore>
+        });
+        (f, map)
+    }
+
+    #[tokio::test]
+    async fn changing_the_api_address_during_a_refresh_keeps_tokens_apart() {
+        let worker: Arc<OnceLock<Arc<SyncWorker>>> = Arc::default();
+        let srv_b = start(Arc::new(|_: &Request| Response::empty(500))).await;
+        let base_b = srv_b.base.clone();
+        let w2 = worker.clone();
+        // server A rotates the refresh token, but the user switches to
+        // server B while that answer is on its way
+        let srv_a = start(Arc::new(move |r: &Request| match r.path.as_str() {
+            "/auth/refresh" => {
+                let w = w2.get().unwrap();
+                let mut s = lock(&w.inner).settings.clone();
+                s.api_base = base_b.clone();
+                w.configure(s, HashSet::from([ME]));
+                Response::json(200, auth("acc-a", "ref-a1"))
+            }
+            _ => Response::empty(500),
+        }))
+        .await;
+        let (secrets, map) = per_account_secrets();
+        let store = Arc::new(Store::in_memory().unwrap());
+        let deps = Deps {
+            store: store.clone(),
+            names: Arc::new(Mutex::new(NameCache::default())),
+            secrets: secrets.clone(),
+            open_browser: no_browser(),
+            on_change: Arc::new(|| {}),
+        };
+        let settings = SyncSettings {
+            enabled: true,
+            api_base: srv_a.base.clone(),
+            discord_client_id: crate::online_sync::test_snowflake('7'),
+        };
+        let account_a = super::super::keyring_account(&srv_a.base);
+        let account_b = super::super::keyring_account(&srv_b.base);
+        secrets(&account_a).set("ref-a0").unwrap();
+        let w = SyncWorker::new(deps, settings, HashSet::from([ME]));
+        assert!(worker.set(w.clone()).is_ok());
+        let id = ended_session(&store, ME, T0);
+        assert!(w.session_finished(id, ME, T0));
+
+        assert_eq!(w.step(T0).await, 0, "nothing uploaded during the switch");
+        // the rotated token stays with server A, nothing of A is kept for B
+        let get = |a: &str| map.lock().unwrap().get(a).and_then(|s| s.get().unwrap());
+        assert_eq!(get(&account_a).as_deref(), Some("ref-a1"));
+        assert_eq!(get(&account_b), None);
+        assert!(!w.status().signed_in, "not signed in at server B");
+
+        // the next pass talks to server B without any token of server A
+        w.step(T0 + 1).await;
+        for q in srv_b.requests() {
+            let auth = q.header("authorization").unwrap_or("");
+            assert!(
+                !auth.contains("acc-a") && !q.body.contains("ref-a"),
+                "{q:?}"
+            );
+        }
+        assert!(srv_b.requests().is_empty(), "signed out at B: no request");
+    }
+
+    #[tokio::test]
+    async fn changing_the_api_address_during_a_sign_in_keeps_tokens_apart() {
+        let srv_a = start(Arc::new(|r: &Request| match r.path.as_str() {
+            "/auth/discord" => Response::json(200, auth("acc-a", "ref-a1")),
+            _ => Response::empty(500),
+        }))
+        .await;
+        let srv_b = start(Arc::new(|_: &Request| Response::empty(500))).await;
+        let worker: Arc<OnceLock<Arc<SyncWorker>>> = Arc::default();
+        let (w2, base_b) = (worker.clone(), srv_b.base.clone());
+        let seen = Arc::new(Mutex::new(None));
+        let approve = approving_browser(seen);
+        // the user switches the address while the browser is open
+        let opener: BrowserOpener = Arc::new(move |url| {
+            let w = w2.get().unwrap();
+            let mut s = lock(&w.inner).settings.clone();
+            s.api_base = base_b.clone();
+            w.configure(s, HashSet::from([ME]));
+            approve(url)
+        });
+        let (secrets, map) = per_account_secrets();
+        let deps = Deps {
+            store: Arc::new(Store::in_memory().unwrap()),
+            names: Arc::new(Mutex::new(NameCache::default())),
+            secrets,
+            open_browser: opener,
+            on_change: Arc::new(|| {}),
+        };
+        let settings = SyncSettings {
+            enabled: true,
+            api_base: srv_a.base.clone(),
+            discord_client_id: crate::online_sync::test_snowflake('7'),
+        };
+        let w = SyncWorker::new(deps, settings, HashSet::from([ME]));
+        w.set_ports(vec![0]);
+        assert!(worker.set(w.clone()).is_ok());
+        let e = w.login(t0).await.unwrap_err();
+        assert!(e.contains("API address changed"), "{e}");
+        // code and verifier went to the server the sign-in started with
+        assert_eq!(srv_a.requests().len(), 1);
+        assert!(srv_b.requests().is_empty());
+        let get = |a: &str| map.lock().unwrap().get(a).and_then(|s| s.get().unwrap());
+        let account_a = super::super::keyring_account(&srv_a.base);
+        let account_b = super::super::keyring_account(&srv_b.base);
+        assert_eq!(get(&account_a).as_deref(), Some("ref-a1"));
+        assert_eq!(get(&account_b), None);
+        assert!(!w.status().signed_in);
     }
 }

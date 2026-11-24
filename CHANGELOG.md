@@ -20,7 +20,8 @@ after [SemVer](https://semver.org/).
   *Retry upload* in the detail view and *Upload existing sessions…* in the
   settings. *Sign out* and *Delete my online data…* in the settings. Without
   switching it on and signing in, the app makes no request to the stats server.
-  See the wiki page *Online Sync*.
+  Changing the API address while a sign-in or token refresh is running never
+  hands a token of one server to the other. See the wiki page *Online Sync*.
 - Flatpak: permission `--talk-name=org.freedesktop.secrets` for the keyring of
   the online sync.
 - Official builds can embed the Discord client ID of the stats server
