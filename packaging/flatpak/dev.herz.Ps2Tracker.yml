@@ -54,6 +54,9 @@ build-options:
     CARGO_HOME: /run/build/ps2-tracker/cargo
     CARGO_NET_OFFLINE: "true"
 modules:
+  # tray icon: libayatana-appindicator3 is not part of the GNOME runtime
+  # (Flathub shared module, see shared-modules/README.md)
+  - shared-modules/libayatana-appindicator/libayatana-appindicator-gtk3.json
   - name: ps2-tracker
     buildsystem: simple
     build-commands:
