@@ -72,7 +72,7 @@ pub fn open_url(url: &str) -> Result<(), String> {
 
 #[cfg(windows)]
 fn open_https(url: &str) -> Result<(), String> {
-    crate::win_console::shell_open(url)
+    crate::win_console::shell_open(std::ffi::OsStr::new(url))
 }
 
 #[cfg(not(windows))]

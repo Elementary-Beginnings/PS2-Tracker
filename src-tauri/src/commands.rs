@@ -1343,14 +1343,20 @@ pub fn open_folder(st: S<'_>, kind: String) -> R<()> {
         _ => return Err("unknown folder".into()),
     };
     std::fs::create_dir_all(&dir).map_err(e)?;
-    // Linux: xdg-open (inside Flatpak the portal's OpenURI); Windows: Explorer
-    let opener = if cfg!(windows) {
-        "explorer"
-    } else {
-        "xdg-open"
-    };
-    std::process::Command::new(opener)
-        .arg(&dir)
+    open_dir(&dir)
+}
+
+/// Windows: ShellExecuteW "open" (File Explorer, no command line parsing by
+/// explorer.exe); Linux: xdg-open (inside Flatpak the OpenURI portal).
+#[cfg(windows)]
+fn open_dir(dir: &std::path::Path) -> R<()> {
+    crate::win_console::shell_open(dir.as_os_str())
+}
+
+#[cfg(not(windows))]
+fn open_dir(dir: &std::path::Path) -> R<()> {
+    std::process::Command::new("xdg-open")
+        .arg(dir)
         .spawn()
         .map(|mut child| {
             // reap the helper process

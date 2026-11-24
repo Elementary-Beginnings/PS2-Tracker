@@ -1,7 +1,7 @@
 //! The only module of the project with `unsafe` code (Windows only): Win32
 //! calls without a safe wrapper in our dependencies – attach to / open a
-//! console, read the cursor clip rectangle, and open a URL in the default
-//! browser (ShellExecuteW). Every call has a SAFETY note.
+//! console, read the cursor clip rectangle, and open a URL or folder with the
+//! shell (ShellExecuteW). Every call has a SAFETY note.
 //! The workspace denies `unsafe_code`; a test in console.rs checks that no
 //! other file allows it.
 #![cfg(windows)]
@@ -67,17 +67,20 @@ pub fn pointer_free() -> Option<bool> {
     ))
 }
 
-/// `ShellExecuteW("open", url)`: opens the URL with the user's default
-/// browser. Used instead of `explorer.exe <url>`, which opened a File Explorer
-/// window for the long OAuth URL. The caller checks that it is an https URL.
-pub fn shell_open(url: &str) -> Result<(), String> {
-    let wide = |s: &str| {
-        s.encode_utf16()
+/// `ShellExecuteW("open", target)`: opens a URL with the user's default
+/// browser or a folder in File Explorer. Used instead of `explorer.exe <arg>`,
+/// which opened a File Explorer window for the long OAuth URL and parses its
+/// command line on its own (commas are switch separators). The callers check
+/// the target (https URL, or one of the app's own folders).
+pub fn shell_open(target: &std::ffi::OsStr) -> Result<(), String> {
+    use std::os::windows::ffi::OsStrExt;
+    let wide = |s: &std::ffi::OsStr| {
+        s.encode_wide()
             .chain(std::iter::once(0))
             .collect::<Vec<u16>>()
     };
-    let verb = wide("open");
-    let file = wide(url);
+    let verb = wide(std::ffi::OsStr::new("open"));
+    let file = wide(target);
     // SAFETY: verb and file are NUL-terminated UTF-16 buffers that live until
     // the call returns; window, parameters and directory may be null.
     let result = unsafe {
