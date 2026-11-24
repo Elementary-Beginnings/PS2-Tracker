@@ -31,6 +31,8 @@ after [SemVer](https://semver.org/).
 - Online sync: answers of the stats server are read up to a size limit (1 MiB
   for JSON, the first 4 KiB of an error text); a larger answer counts as an
   error.
+- Online sign-in: the local sign-in page serves connections side by side with
+  a shorter read timeout, so the browser's return is answered right away.
 - Flatpak: permission `--talk-name=org.freedesktop.secrets` for the keyring of
   the online sync.
 - Official builds can embed the Discord client ID of the stats server

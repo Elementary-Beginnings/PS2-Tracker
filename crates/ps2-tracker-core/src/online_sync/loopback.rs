@@ -6,6 +6,9 @@
 //! Then the listener is closed. Requests to other paths, with a wrong `state`
 //! or a foreign `Host` get an error page and do not end the wait, so a local
 //! web page cannot cancel a sign-in. The answer is static HTML without script.
+//! Connections are served side by side (at most [`MAX_CONNECTIONS`] at a
+//! time, each with a short read timeout), so an idle or slow connection does
+//! not hold up the browser's callback.
 
 use std::time::Duration;
 
@@ -17,7 +20,9 @@ pub const CALLBACK_PATH: &str = "/callback";
 /// Largest request head read.
 const MAX_REQUEST: usize = 8 * 1024;
 /// Time a single connection gets to send its request.
-const READ_TIMEOUT: Duration = Duration::from_secs(5);
+const READ_TIMEOUT: Duration = Duration::from_secs(2);
+/// Connections served at the same time; further ones wait in the backlog.
+pub const MAX_CONNECTIONS: usize = 16;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CallbackError {
@@ -70,14 +75,31 @@ impl Loopback {
     /// code. The listener is closed when this returns.
     pub async fn wait(self, state: &str, timeout: Duration) -> Result<String, CallbackError> {
         let port = self.port;
-        let work = async move {
+        let state: std::sync::Arc<str> = state.into();
+        // dropping the set (return, timeout) ends every open connection
+        let mut conns = tokio::task::JoinSet::new();
+        let work = async {
             loop {
-                let (stream, _) = self.listener.accept().await?;
-                match tokio::time::timeout(READ_TIMEOUT, handle(stream, port, state)).await {
-                    Ok(Ok(Some(Callback::Code(code)))) => return Ok(code),
-                    Ok(Ok(Some(Callback::Error(e)))) => return Err(CallbackError::Denied(e)),
-                    // wrong path/state/host, broken request, slow client
-                    _ => continue,
+                tokio::select! {
+                    // when every slot is busy, new connections wait in the
+                    // backlog until one frees up (read timeout at most)
+                    accepted = self.listener.accept(), if conns.len() < MAX_CONNECTIONS => {
+                        let (stream, _) = accepted?;
+                        let state = state.clone();
+                        conns.spawn(async move {
+                            tokio::time::timeout(READ_TIMEOUT, handle(stream, port, &state)).await
+                        });
+                    }
+                    Some(done) = conns.join_next(), if !conns.is_empty() => {
+                        match done {
+                            Ok(Ok(Ok(Some(Callback::Code(code))))) => return Ok(code),
+                            Ok(Ok(Ok(Some(Callback::Error(e))))) => {
+                                return Err(CallbackError::Denied(e));
+                            }
+                            // wrong path/state/host, broken request, slow client
+                            _ => continue,
+                        }
+                    }
                 }
             }
         };
@@ -319,6 +341,48 @@ mod tests {
         assert!(
             matches!(task.await.unwrap(), Err(CallbackError::Denied(e)) if e == "access_denied")
         );
+    }
+
+    #[tokio::test]
+    async fn idle_connections_do_not_hold_up_the_callback() {
+        let lb = Loopback::bind(&[0]).await.unwrap();
+        let port = lb.port();
+        let task = tokio::spawn(lb.wait("st", Duration::from_secs(30)));
+        // connections that send nothing, more than are served at once
+        let mut idle = Vec::new();
+        for _ in 0..MAX_CONNECTIONS + 4 {
+            idle.push(TcpStream::connect(("127.0.0.1", port)).await.unwrap());
+        }
+        let started = tokio::time::Instant::now();
+        // the slots free up after the short read timeout at the latest
+        let ok = tokio::time::timeout(
+            READ_TIMEOUT * 3,
+            get(port, "/callback?code=the-code&state=st"),
+        )
+        .await
+        .expect("callback answered");
+        assert!(ok.starts_with("HTTP/1.1 200"), "{ok}");
+        assert_eq!(task.await.unwrap().unwrap(), "the-code");
+        assert!(started.elapsed() < READ_TIMEOUT * 3);
+        drop(idle);
+    }
+
+    #[tokio::test]
+    async fn a_slow_connection_does_not_delay_the_callback() {
+        let lb = Loopback::bind(&[0]).await.unwrap();
+        let port = lb.port();
+        let task = tokio::spawn(lb.wait("st", Duration::from_secs(30)));
+        let mut slow = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
+        slow.write_all(b"GET /callback?code=x").await.unwrap();
+        // well within the read timeout of the slow one
+        let ok = tokio::time::timeout(
+            READ_TIMEOUT / 2,
+            get(port, "/callback?code=the-code&state=st"),
+        )
+        .await
+        .expect("callback answered while another connection is open");
+        assert!(ok.starts_with("HTTP/1.1 200"), "{ok}");
+        assert_eq!(task.await.unwrap().unwrap(), "the-code");
     }
 
     #[tokio::test]
