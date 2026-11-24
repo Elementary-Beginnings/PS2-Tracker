@@ -71,6 +71,7 @@ fn host_available() -> bool {
 }
 
 /// `XDG_CURRENT_DESKTOP` is a colon-separated list ("ubuntu:GNOME").
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 pub fn is_gnome(desktop: &str) -> bool {
     desktop
         .split(':')
