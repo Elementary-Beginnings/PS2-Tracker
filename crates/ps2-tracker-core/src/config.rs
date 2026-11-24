@@ -582,7 +582,7 @@ impl Config {
         {
             return Err(ConfigError::Invalid("tint must be #rrggbb".into()));
         }
-        if self.crosshair.file.contains('/') || self.crosshair.file.contains("..") {
+        if self.crosshair.file.contains(['/', '\\', ':']) || self.crosshair.file.contains("..") {
             return Err(ConfigError::Invalid(
                 "crosshair file: file name only".into(),
             ));
@@ -750,6 +750,25 @@ mod tests {
                 "Ctrl+Escape"
             }
         );
+    }
+
+    #[test]
+    fn crosshair_file_is_a_plain_name_on_every_platform() {
+        for bad in [
+            "a/b.png",
+            "a\\b.png",
+            "C:x.png",
+            "C:\\x.png",
+            "..",
+            "x..png",
+        ] {
+            let mut c = Config::default();
+            c.crosshair.file = bad.into();
+            assert!(c.validate().is_err(), "{bad}");
+        }
+        let mut c = Config::default();
+        c.crosshair.file = "my crosshair.png".into();
+        assert!(c.validate().is_ok());
     }
 
     #[test]

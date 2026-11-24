@@ -1058,7 +1058,7 @@ pub struct CrosshairRender {
 /// A PNG from the crosshair library as data URL (hit feedback "swap"); only
 /// plain file names, only valid crosshair images.
 pub fn crosshair_data_url(st: &crate::state::AppState, file: &str) -> Option<String> {
-    if file.is_empty() || file.contains(['/', '\\']) || file.contains("..") {
+    if file.is_empty() || file.contains(['/', '\\', ':']) || file.contains("..") {
         return None;
     }
     let bytes = std::fs::read(st.paths.crosshairs_dir().join(file)).ok()?;
