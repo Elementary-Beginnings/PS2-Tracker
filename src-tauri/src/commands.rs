@@ -155,8 +155,24 @@ pub fn delete_session(app: AppHandle, st: S<'_>, id: i64) -> R<()> {
     Ok(())
 }
 
+/// The app's own folders: nothing is exported into them.
+fn own_dirs(st: &AppState) -> [&std::path::Path; 3] {
+    [
+        st.paths.config_dir.as_path(),
+        st.paths.data_dir.as_path(),
+        st.paths.state_dir.as_path(),
+    ]
+}
+
+/// Exports a session to the file the user picked in the save dialog. The
+/// path is checked (extension of the format, existing folder, plain file,
+/// not inside the app's own folders) before anything is written.
 #[tauri::command]
 pub fn export_session(st: S<'_>, id: i64, format: String, path: PathBuf) -> R<()> {
+    if !matches!(format.as_str(), "json" | "csv" | "xlsx") {
+        return Err("format must be json, csv or xlsx".into());
+    }
+    let target = crate::save_target::check(&path, &format, &own_dirs(&st))?;
     let s = st
         .store
         .load_session(id, st.cfg().session.session_config())
@@ -170,7 +186,7 @@ pub fn export_session(st: S<'_>, id: i64, format: String, path: PathBuf) -> R<()
         }
         _ => return Err("format must be json, csv or xlsx".into()),
     };
-    std::fs::write(path, bytes).map_err(e)
+    std::fs::write(target, bytes).map_err(e)
 }
 
 #[derive(Serialize)]
@@ -372,17 +388,9 @@ pub async fn update_install(app: AppHandle) -> R<()> {
 /// Writes a chart image (PNG data URL from the Analytics page) to a path the
 /// user picked in the save dialog.
 #[tauri::command]
-pub fn save_png(path: PathBuf, data_url: String) -> R<()> {
+pub fn save_png(st: S<'_>, path: PathBuf, data_url: String) -> R<()> {
     use base64::Engine as _;
-    if path
-        .extension()
-        .and_then(|x| x.to_str())
-        .map(str::to_ascii_lowercase)
-        .as_deref()
-        != Some("png")
-    {
-        return Err("only .png files".into());
-    }
+    let target = crate::save_target::check(&path, "png", &own_dirs(&st))?;
     let b64 = data_url
         .strip_prefix("data:image/png;base64,")
         .ok_or("not a PNG image")?;
@@ -395,7 +403,7 @@ pub fn save_png(path: PathBuf, data_url: String) -> R<()> {
     if !bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
         return Err("not a PNG image".into());
     }
-    std::fs::write(path, bytes).map_err(e)
+    std::fs::write(target, bytes).map_err(e)
 }
 
 /// Evaluations for the Analytics page (at most 50 sessions at a time).
@@ -1136,9 +1144,10 @@ pub fn voice_undo_remove(app: AppHandle, st: S<'_>, removed: RemovedPack) -> R<(
 
 #[tauri::command]
 pub fn voice_export(st: S<'_>, id: String, path: PathBuf, format: PackFormat) -> R<()> {
+    let target = crate::save_target::check(&path, "zip", &own_dirs(&st))?;
     let (_, pack) = packloader::load_any(&pack_dir(&st, &id)?).map_err(e)?;
     packloader::loader(format)
-        .export_zip(&pack, &path)
+        .export_zip(&pack, &target)
         .map_err(e)
 }
 

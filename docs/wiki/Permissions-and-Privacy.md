@@ -193,6 +193,12 @@ The app reads and writes only in its own folders
   `crosshair_import`, `voice_add_file`). On import the files are copied into the
   data folder; paths with `..`, absolute paths and symlinks are refused
   (`voicepack.rs`, `recursion.rs` `resolve_path`), sizes are limited.
+- **Exports** (session as JSON/CSV/XLSX, chart image, voice pack ZIP; commands
+  `export_session`, `save_png`, `voice_export`) are written only to the file
+  chosen in the save dialog, after a check (`src-tauri/src/save_target.rs`):
+  absolute path without `..`, the extension of the format, an existing folder,
+  not a hidden file, not a symlink or folder, and not inside the app's own
+  configuration, data or log folder.
 - **Own sound for an event** (“Choose custom sound”, command
   `voice_set_override`): the file chosen in the file dialog is checked (codec,
   size) and copied to `<data folder>/custom-sounds/`; the configuration points to

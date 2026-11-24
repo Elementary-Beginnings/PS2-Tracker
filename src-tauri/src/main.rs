@@ -15,6 +15,7 @@ mod engine;
 mod focus;
 mod hotkeys;
 mod obs;
+mod save_target;
 mod state;
 mod sync;
 mod tray;
