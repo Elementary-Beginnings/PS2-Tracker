@@ -45,6 +45,9 @@ tracing-subscriber.workspace = true
 # X11 window properties (focus detection, OSD window type) – Linux only
 [target.'cfg(target_os = "linux")'.dependencies]
 x11rb = "0.14.0"
+# tray.rs: is there a StatusNotifierItem host (GNOME)? Already in the tree
+# through the Secret Service keyring store (same version, no new crate)
+zbus = "5.19.0"
 
 # active window and its process name (focus detection) – Windows only
 [target.'cfg(windows)'.dependencies]

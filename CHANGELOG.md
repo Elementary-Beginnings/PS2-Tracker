@@ -5,6 +5,10 @@ after [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Linux: the app no longer crashes at start when the tray library (libayatana-appindicator3) is missing, e.g. in the Flatpak. On GNOME without a tray extension, and wherever no tray icon can be shown, closing the main window quits the app instead of leaving it running unseen, and "Start in the tray" opens the window.
+
 ## [1.2.1] – 2026-11-24
 
 ### Fixed

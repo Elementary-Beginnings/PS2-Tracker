@@ -556,7 +556,10 @@ fn main() {
                 tracing::warn!(error = %e, "log file not opened");
             }
             hotkeys::register(&handle);
-            if start_hidden && let Some(w) = app.get_webview_window("main") {
+            // without a visible tray a hidden start would leave no way back
+            if start_hidden && !tray::visible() {
+                tracing::info!("start minimized ignored: no tray icon to open the window again");
+            } else if start_hidden && let Some(w) = app.get_webview_window("main") {
                 let _ = w.hide();
             }
             if let Err(e) = windows::apply_overlay(&handle, "start") {
@@ -586,12 +589,19 @@ fn main() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            // closing the main window minimizes to the tray
+            // closing the main window minimizes to the tray; without a
+            // visible tray it quits (otherwise the app would run on unseen)
             if window.label() == "main"
                 && let WindowEvent::CloseRequested { api, .. } = event
             {
                 api.prevent_close();
-                let _ = window.hide();
+                if tray::visible() {
+                    let _ = window.hide();
+                } else {
+                    let app = window.app_handle();
+                    engine::shutdown(app);
+                    app.exit(0);
+                }
             }
         })
         .build(tauri::generate_context!())
