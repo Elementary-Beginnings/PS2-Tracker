@@ -212,6 +212,10 @@ pub fn register(app: &AppHandle) {
     let _ = gs.unregister_all();
     let mut failed = Vec::new();
     let mut seen = std::collections::HashSet::new();
+    // Linux: the plugin grabs keys on the X server. Without one its hotkey
+    // thread ends at once and every register call returns Ok, so the UI would
+    // claim working hotkeys; report them as failed instead.
+    let no_x = no_x_display(cfg!(target_os = "linux"), std::env::var_os("DISPLAY"));
     for (s, a) in bindings(app) {
         if s.trim().is_empty() || !seen.insert(s.clone()) {
             continue;
@@ -219,7 +223,10 @@ pub fn register(app: &AppHandle) {
         let res = s
             .parse::<Shortcut>()
             .map_err(|e| format!("invalid: {e}"))
-            .and_then(|sc| gs.register(sc).map_err(|e| e.to_string()));
+            .and_then(|sc| match no_x {
+                true => Err(NO_X_REASON.to_string()),
+                false => gs.register(sc).map_err(|e| e.to_string()),
+            });
         match res {
             Ok(()) => tracing::debug!(hotkey = %s, action = a.describe(), "hotkey registered ok"),
             Err(reason) => {
@@ -234,9 +241,25 @@ pub fn register(app: &AppHandle) {
         .unwrap_or_else(|e| e.into_inner()) = failed;
 }
 
+const NO_X_REASON: &str = "no X11 display (pure Wayland): bind the command line switches \
+     (e.g. ps2-tracker --toggle-overlay) to desktop shortcuts";
+
+/// Linux without `DISPLAY`: no X server for global hotkeys.
+fn no_x_display(linux: bool, display: Option<std::ffi::OsString>) -> bool {
+    linux && display.is_none_or(|d| d.is_empty())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hotkeys_need_an_x_display_on_linux() {
+        assert!(no_x_display(true, None));
+        assert!(no_x_display(true, Some("".into())));
+        assert!(!no_x_display(true, Some(":0".into())));
+        assert!(!no_x_display(false, None));
+    }
 
     #[test]
     fn cli_flags() {
