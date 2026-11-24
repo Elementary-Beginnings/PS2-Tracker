@@ -5,6 +5,10 @@
 # kann ihn also nicht veraendern). Er prueft:
 #   - PR von dependabot[bot] aus diesem Repo, Head-Commit unveraendert,
 #   - alle Checks dieses Commits fertig und keiner rot,
+#   - jeder Pflicht-Check aus REQUIRED_CHECKS (bei Aenderungen an den Pfaden
+#     des Flatpak-Workflows auch FLATPAK_CHECKS) existiert und ist gruen -
+#     ein Workflow, der noch keinen Check angelegt hat, haelt den Merge auf,
+#   - keine Commit-Statuses (Status-API), die nicht gruen sind,
 #   - nur version-update:semver-patch/minor (Major bleibt fuer Max liegen;
 #     Sicherheitsupdates ohne update-type: gleiche Major-Version),
 # und mergt dann per Squash. Danach loescht er den Branch und startet die
@@ -28,6 +32,13 @@ concurrency:
 env:
   # Workflows, die nach dem Merge auf main laufen sollen (Dateinamen).
   MAIN_WORKFLOWS: "ci.yml codeql.yml"
+  # Check-Namen (Job-Namen), die fuer jeden Dependabot-PR gruen sein muessen;
+  # bei neuen oder umbenannten Jobs in ci.yml, codeql.yml oder
+  # dependency-review.yml hier nachziehen. Getrennt durch ";".
+  REQUIRED_CHECKS: "Lint and test (Linux);Dependencies and secrets;Compile (Windows);Analyze (rust);Analyze (javascript-typescript);Analyze (actions);Dependency review"
+  # flatpak.yml laeuft nur bei Aenderungen an diesen Pfaden (siehe dort).
+  FLATPAK_CHECKS: "Frontend and crate sources;flatpak-builder (GNOME 51)"
+  FLATPAK_PATHS: '^(packaging/flatpak/|src-tauri/|Cargo\.lock$|\.github/workflows/flatpak\.yml$|tools/flatpak_[^/]*\.sh$)'
 
 jobs:
   merge:
@@ -44,6 +55,7 @@ jobs:
       pull-requests: write
       actions: write
       checks: read
+      statuses: read
     env:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
@@ -60,11 +72,27 @@ jobs:
           [ "$(jq -r .head.sha <<<"$pr")" = "$HEAD_SHA" ] || { echo "#$num hat inzwischen einen neueren Commit"; exit 0; }
 
           # Alle Checks des Commits fertig und keiner rot?
-          checks=$(gh api --paginate "repos/${REPO}/commits/${HEAD_SHA}/check-runs?per_page=100" --jq '.check_runs[] | "\(.status) \(.conclusion) \(.name)"')
+          checks=$(gh api --paginate "repos/${REPO}/commits/${HEAD_SHA}/check-runs?per_page=100&filter=latest" --jq '.check_runs[] | "\(.status) \(.conclusion) \(.name)"')
           if grep -v '^completed ' <<<"$checks" | grep -q .; then echo "#$num: Checks laufen noch - der naechste Lauf entscheidet"; exit 0; fi
           if grep -Eq '^completed (failure|cancelled|timed_out|action_required|startup_failure) ' <<<"$checks"; then
             echo "#$num: rote Checks:"; grep -E '^completed (failure|cancelled|timed_out|action_required|startup_failure) ' <<<"$checks"; exit 0
           fi
+
+          # Jeder Pflicht-Check vorhanden und gruen? Fehlt einer, laeuft sein
+          # Workflow noch nicht oder nicht mehr - dann entscheidet ein spaeterer Lauf.
+          required="$REQUIRED_CHECKS"
+          files=$(gh api --paginate "repos/${REPO}/pulls/${num}/files?per_page=100" --jq '.[].filename')
+          if grep -Eq "$FLATPAK_PATHS" <<<"$files"; then required="${required};${FLATPAK_CHECKS}"; fi
+          missing=""
+          IFS=';' read -ra names <<<"$required"
+          for n in "${names[@]}"; do
+            grep -Fxq "completed success ${n}" <<<"$checks" || missing="${missing}${n}; "
+          done
+          if [ -n "$missing" ]; then echo "#$num: Pflicht-Checks fehlen oder sind nicht gruen: ${missing}- der naechste Lauf entscheidet"; exit 0; fi
+
+          # Commit-Statuses (Status-API): keine vorhanden oder alle gruen.
+          read -r st_state st_count < <(gh api "repos/${REPO}/commits/${HEAD_SHA}/status" --jq '"\(.state) \(.total_count)"')
+          if [ "$st_count" != 0 ] && [ "$st_state" != success ]; then echo "#$num: Commit-Status ${st_state} - nicht gemergt"; exit 0; fi
 
           # Art des Updates aus Dependabots Commit-Nachrichten.
           msgs=$(gh api "repos/${REPO}/pulls/${num}/commits?per_page=100" --jq '.[].commit.message')
