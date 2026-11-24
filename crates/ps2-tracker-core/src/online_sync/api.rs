@@ -313,8 +313,12 @@ async fn error_from(status: StatusCode, r: reqwest::Response) -> ApiError {
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.trim().parse::<i64>().ok())
         .filter(|s| *s >= 0);
-    let text = r.text().await.unwrap_or_default();
-    let body: ErrorBody = serde_json::from_str(&text).unwrap_or_default();
+    // only the start of an error body is read; the texts are cut anyway
+    let text = match read_limited(r, MAX_ERROR_BYTES).await {
+        Ok(b) | Err(Limited::TooLarge(b)) => b,
+        Err(Limited::Network(_)) => Vec::new(),
+    };
+    let body: ErrorBody = serde_json::from_slice(&text).unwrap_or_default();
     ApiError::Status {
         status: status.as_u16(),
         code: body.error.map(|c| clean(&c, 64)),
@@ -333,11 +337,45 @@ fn clean(s: &str, max: usize) -> String {
         .to_owned()
 }
 
-async fn parse_json<T: serde::de::DeserializeOwned>(r: reqwest::Response) -> Result<T, ApiError> {
-    let bytes = r
-        .bytes()
+/// Largest JSON answer read from the stats server.
+pub const MAX_JSON_BYTES: usize = 1024 * 1024;
+/// How much of an error body is read.
+pub const MAX_ERROR_BYTES: usize = 4 * 1024;
+
+enum Limited {
+    /// More than the limit: the first `limit` bytes.
+    TooLarge(Vec<u8>),
+    Network(String),
+}
+
+/// Reads a body chunk by chunk, at most `limit` bytes.
+async fn read_limited(mut r: reqwest::Response, limit: usize) -> Result<Vec<u8>, Limited> {
+    if r.content_length().is_some_and(|n| n > limit as u64) {
+        return Err(Limited::TooLarge(Vec::new()));
+    }
+    let mut out = Vec::new();
+    while let Some(chunk) = r
+        .chunk()
         .await
-        .map_err(|e| ApiError::Network(e.without_url().to_string()))?;
+        .map_err(|e| Limited::Network(e.without_url().to_string()))?
+    {
+        let room = limit - out.len();
+        if chunk.len() > room {
+            out.extend_from_slice(&chunk[..room]);
+            return Err(Limited::TooLarge(out));
+        }
+        out.extend_from_slice(&chunk);
+    }
+    Ok(out)
+}
+
+async fn parse_json<T: serde::de::DeserializeOwned>(r: reqwest::Response) -> Result<T, ApiError> {
+    let bytes = read_limited(r, MAX_JSON_BYTES).await.map_err(|e| match e {
+        Limited::TooLarge(_) => {
+            ApiError::Shape(format!("answer larger than {} KiB", MAX_JSON_BYTES / 1024))
+        }
+        Limited::Network(e) => ApiError::Network(e),
+    })?;
     // the serde error names the field, never the value of a token
     serde_json::from_slice(&bytes).map_err(|e| ApiError::Shape(format!("{e:#}")))
 }
@@ -622,5 +660,48 @@ pub(crate) mod tests {
         let e = dead.upload(&t, 1, 1, "{}".into()).await.unwrap_err();
         assert!(matches!(e, ApiError::Network(_)));
         assert_eq!(classify(&e), ErrorClass::Transient);
+    }
+
+    #[tokio::test]
+    async fn answers_are_read_up_to_a_limit() {
+        let big = "x".repeat(MAX_JSON_BYTES + 1);
+        let srv = start(Arc::new(move |r| match r.path.as_str() {
+            "/me" => Response {
+                status: 200,
+                headers: vec![],
+                body: format!("{{\"discord_id\":\"{big}\"}}"),
+            },
+            _ => Response::json(400, json!({"error": "bad", "message": big.clone()})),
+        }))
+        .await;
+        let api = SyncApi::new(&srv.base).unwrap();
+        let e = api.me(&Token::new("a")).await.unwrap_err();
+        assert!(matches!(e, ApiError::Shape(_)), "{e:?}");
+        assert!(e.to_string().contains("larger than"), "{e}");
+        // an oversized error body still gives the status
+        let e = api.logout(&Token::new("r")).await.unwrap_err();
+        assert_eq!(e.status(), Some(400));
+
+        // without Content-Length: the stream is cut at the limit
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            use tokio::io::{AsyncReadExt, AsyncWriteExt};
+            let (mut s, _) = listener.accept().await.unwrap();
+            let mut buf = [0u8; 4096];
+            let _ = s.read(&mut buf).await;
+            let _ = s
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n")
+                .await;
+            let chunk = vec![b' '; 64 * 1024];
+            for _ in 0..64 {
+                if s.write_all(&chunk).await.is_err() {
+                    return;
+                }
+            }
+        });
+        let api = SyncApi::new(&format!("http://{addr}/api/v1")).unwrap();
+        let e = api.me(&Token::new("a")).await.unwrap_err();
+        assert!(matches!(e, ApiError::Shape(_)), "{e:?}");
     }
 }

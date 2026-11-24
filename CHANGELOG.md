@@ -28,6 +28,9 @@ after [SemVer](https://semver.org/).
   address asks for confirmation, says that the sign-in goes to that address,
   and signs out at the previous one. A notice is shown while another address
   is set.
+- Online sync: answers of the stats server are read up to a size limit (1 MiB
+  for JSON, the first 4 KiB of an error text); a larger answer counts as an
+  error.
 - Flatpak: permission `--talk-name=org.freedesktop.secrets` for the keyring of
   the online sync.
 - Official builds can embed the Discord client ID of the stats server
