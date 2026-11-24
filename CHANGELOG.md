@@ -68,6 +68,9 @@ after [SemVer](https://semver.org/).
   audio files (recognised by their content, at most 20 MB, checked before
   reading) are taken over; other files a pack definition names are skipped
   and never copied into the library.
+- CSV export: name cells starting with `=`, `+`, `-`, `@`, tab or CR get a
+  leading `'`, so a spreadsheet program does not run them as formulas (names
+  can come from an imported session file).
 
 ## [1.1.1] – 2026-11-23
 
