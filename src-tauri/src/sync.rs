@@ -59,24 +59,31 @@ pub fn session_finished(st: &AppState, session: &ps2_tracker_core::Session) {
 }
 
 /// Opens an https URL in the system browser: xdg-open on Linux (inside
-/// Flatpak the OpenURI portal), Explorer on Windows. No shell is involved.
+/// Flatpak the OpenURI portal), ShellExecuteW ("open") on Windows. No shell
+/// is involved. explorer.exe is not used for URLs: with the long OAuth URL it
+/// opened a File Explorer window instead of the browser.
 pub fn open_url(url: &str) -> Result<(), String> {
     let parsed = tauri::Url::parse(url).map_err(|_| "invalid URL".to_string())?;
     if parsed.scheme() != "https" {
         return Err("only https links are opened".into());
     }
-    let opener = if cfg!(windows) {
-        "explorer"
-    } else {
-        "xdg-open"
-    };
-    std::process::Command::new(opener)
-        .arg(parsed.as_str())
+    open_https(parsed.as_str())
+}
+
+#[cfg(windows)]
+fn open_https(url: &str) -> Result<(), String> {
+    crate::win_console::shell_open(url)
+}
+
+#[cfg(not(windows))]
+fn open_https(url: &str) -> Result<(), String> {
+    std::process::Command::new("xdg-open")
+        .arg(url)
         .spawn()
         .map(|mut child| {
             std::thread::spawn(move || {
                 let _ = child.wait();
             });
         })
-        .map_err(|err| format!("{opener}: {err}"))
+        .map_err(|err| format!("xdg-open: {err}"))
 }

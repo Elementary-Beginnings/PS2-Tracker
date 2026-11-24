@@ -51,7 +51,7 @@ x11rb = "0.14.0"
 active-win-pos-rs = "0.11.0"
 # win_console.rs: console for CLI output and the debug mode, cursor clip of the
 # move layer (same version as in the Tauri stack, no second copy)
-windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_System_Console", "Win32_UI_WindowsAndMessaging"] }
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_System_Console", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
 
 [lints]
 workspace = true

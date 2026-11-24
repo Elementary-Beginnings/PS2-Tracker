@@ -1,6 +1,7 @@
-//! The only module of the project with `unsafe` code (Windows only): three
-//! Win32 calls without a safe wrapper in our dependencies – attach to / open a
-//! console, and read the cursor clip rectangle. Every call has a SAFETY note.
+//! The only module of the project with `unsafe` code (Windows only): Win32
+//! calls without a safe wrapper in our dependencies – attach to / open a
+//! console, read the cursor clip rectangle, and open a URL in the default
+//! browser (ShellExecuteW). Every call has a SAFETY note.
 //! The workspace denies `unsafe_code`; a test in console.rs checks that no
 //! other file allows it.
 #![cfg(windows)]
@@ -10,9 +11,10 @@ use windows_sys::Win32::Foundation::RECT;
 use windows_sys::Win32::System::Console::{
     ATTACH_PARENT_PROCESS, AllocConsole, AttachConsole, SetConsoleTitleW,
 };
+use windows_sys::Win32::UI::Shell::ShellExecuteW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     GetClipCursor, GetSystemMetrics, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN, SM_XVIRTUALSCREEN,
-    SM_YVIRTUALSCREEN,
+    SM_YVIRTUALSCREEN, SW_SHOWNORMAL,
 };
 
 /// `AttachConsole(ATTACH_PARENT_PROCESS)`: the console of the terminal the app
@@ -63,4 +65,36 @@ pub fn pointer_free() -> Option<bool> {
         (r.left, r.top, r.right, r.bottom),
         screen,
     ))
+}
+
+/// `ShellExecuteW("open", url)`: opens the URL with the user's default
+/// browser. Used instead of `explorer.exe <url>`, which opened a File Explorer
+/// window for the long OAuth URL. The caller checks that it is an https URL.
+pub fn shell_open(url: &str) -> Result<(), String> {
+    let wide = |s: &str| {
+        s.encode_utf16()
+            .chain(std::iter::once(0))
+            .collect::<Vec<u16>>()
+    };
+    let verb = wide("open");
+    let file = wide(url);
+    // SAFETY: verb and file are NUL-terminated UTF-16 buffers that live until
+    // the call returns; window, parameters and directory may be null.
+    let result = unsafe {
+        ShellExecuteW(
+            std::ptr::null_mut(),
+            verb.as_ptr(),
+            file.as_ptr(),
+            std::ptr::null(),
+            std::ptr::null(),
+            SW_SHOWNORMAL,
+        )
+    };
+    // a value greater than 32 means success
+    let code = result as isize;
+    if code > 32 {
+        Ok(())
+    } else {
+        Err(format!("ShellExecuteW failed ({code})"))
+    }
 }
