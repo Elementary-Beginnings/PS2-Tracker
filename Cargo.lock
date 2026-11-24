@@ -4086,7 +4086,7 @@ dependencies = [
 
 [[package]]
 name = "ps2-tracker"
-version = "1.2.1"
+version = "1.2.2"
 dependencies = [
  "active-win-pos-rs",
  "axum",
@@ -4115,7 +4115,7 @@ dependencies = [
 
 [[package]]
 name = "ps2-tracker-core"
-version = "1.2.1"
+version = "1.2.2"
 dependencies = [
  "base64 0.23.1",
  "csv",

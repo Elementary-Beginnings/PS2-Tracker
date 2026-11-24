@@ -5,6 +5,8 @@ after [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.2] – 2026-11-24
+
 ### Fixed
 
 - Linux: the app no longer stops at start when the tray library (libayatana-appindicator3) is missing. On GNOME without a tray extension, and wherever no tray icon can be shown, closing the main window quits the app instead of leaving it running unseen, and "Start in the tray" opens the window.
