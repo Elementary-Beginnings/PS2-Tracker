@@ -530,10 +530,17 @@ pub fn stage_vpk(vpk: &Path, dest: &Path) -> Result<(), PackError> {
             continue;
         };
         let src = root.join(&rel);
-        let len = std::fs::metadata(&src)?.len();
+        let meta = std::fs::symlink_metadata(&src)?;
+        let len = meta.len();
         total += len;
         if len > voicepack::MAX_FILE_BYTES || total > voicepack::MAX_PACK_BYTES {
             return Err(invalid("pack too large"));
+        }
+        // the definition names the files; next to a downloaded .rtst_vpk only
+        // audio files are copied (no documents or keys from the same folder)
+        if !meta.is_file() || !crate::audiofmt::is_audio_file(&src)? {
+            tracing::warn!(file = %rel.display(), "not an audio file, not imported");
+            continue;
         }
         let to = dest.join(&rel);
         if let Some(d) = to.parent() {

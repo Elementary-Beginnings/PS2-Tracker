@@ -171,6 +171,24 @@ fn import_via_vpk_file_copies_only_referenced() {
     let _ = std::fs::remove_dir_all(lib);
 }
 
+/// The definition names the files next to it; a referenced file that is not
+/// audio (a document saved under that name in Downloads) is not copied.
+#[test]
+fn import_via_vpk_file_copies_only_audio() {
+    let src = tmp("vpkaudio");
+    copy_dir(&fixture(), &src);
+    std::fs::write(src.join("Testpack/pizza.ogg"), b"%PDF-1.7 not a sound").unwrap();
+    let lib = tmp("vpkaudiolib");
+    let (_, p) = packloader::import(&src.join("Testpack.rtst_vpk"), &lib).unwrap();
+    assert!(p.dir.join("Testpack/Don't Stop!.ogg").is_file());
+    assert!(
+        !p.dir.join("Testpack/pizza.ogg").exists(),
+        "non-audio file is not copied"
+    );
+    let _ = std::fs::remove_dir_all(src);
+    let _ = std::fs::remove_dir_all(lib);
+}
+
 #[test]
 fn import_via_zip_and_rar_rejected() {
     use zip::write::SimpleFileOptions;

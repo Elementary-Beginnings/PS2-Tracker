@@ -61,6 +61,14 @@ after [SemVer](https://semver.org/).
   the save dialog before writing: the extension of the format, an existing
   folder, a plain file and not inside the app's own folders.
 
+### Security
+
+- Voice pack import: a `.rtst_vpk` imported directly (XML or binary) takes
+  the sound files it names from the folder it lies in (e.g. Downloads). Only
+  audio files (recognised by their content, at most 20 MB, checked before
+  reading) are taken over; other files a pack definition names are skipped
+  and never copied into the library.
+
 ## [1.1.1] – 2026-11-23
 
 ### Added

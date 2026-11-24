@@ -674,6 +674,35 @@ fn sound_file_name(s: &PakSound) -> Option<String> {
     Some(base.to_owned())
 }
 
+/// Reads a loose sound the definition points to. The definition comes from
+/// the pack author, and for a `.rtst_vpk` imported directly `loose_root` is
+/// the folder it was downloaded to (e.g. Downloads), so only audio files are
+/// taken over: anything else (documents, keys) is never copied into the
+/// library. The size is checked before the file is read.
+fn read_loose(
+    p: &Path,
+    key: &str,
+    warnings: &mut Vec<String>,
+) -> Result<Option<Vec<u8>>, PackError> {
+    let shown = p
+        .file_name()
+        .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
+    let meta = std::fs::symlink_metadata(p)?;
+    if !meta.is_file() {
+        warnings.push(format!("{key}: {shown} is not a regular file"));
+        return Ok(None);
+    }
+    if meta.len() > voicepack::MAX_FILE_BYTES {
+        warnings.push(format!("{key}: {shown} too large"));
+        return Ok(None);
+    }
+    if !crate::audiofmt::is_audio_file(p)? {
+        warnings.push(format!("{key}: {shown} is not an audio file"));
+        return Ok(None);
+    }
+    Ok(Some(std::fs::read(p)?))
+}
+
 /// Converts a binary pack into our format in `dest` (sounds in `dest/sounds/`,
 /// `voicepack.toml`, background image). `loose_root` is the folder of the
 /// `.rtst_vpk` (for sounds that are not embedded). `fallback_name` names the
@@ -730,15 +759,17 @@ pub fn convert(
                 match s.loose.as_deref() {
                     Some(raw) if is_foreign_absolute(raw) => {
                         match base_name(raw).and_then(|b| find_by_name(loose_root, b)) {
-                            Some(p) => data = Some(std::fs::read(p)?),
+                            Some(p) => data = read_loose(&p, &e.key, &mut warnings)?,
                             None => warnings.push(format!("{}: absolute path ignored", e.key)),
                         }
                     }
                     Some(raw) => match crate::recursion::resolve_path(loose_root, raw) {
-                        Ok(rel) => data = Some(std::fs::read(loose_root.join(rel))?),
+                        Ok(rel) => {
+                            data = read_loose(&loose_root.join(rel), &e.key, &mut warnings)?;
+                        }
                         Err(issue) => {
                             match base_name(raw).and_then(|b| find_by_name(loose_root, b)) {
-                                Some(p) => data = Some(std::fs::read(p)?),
+                                Some(p) => data = read_loose(&p, &e.key, &mut warnings)?,
                                 None => warnings
                                     .push(format!("{}: sound {raw} not usable ({issue:?})", e.key)),
                             }
@@ -1125,6 +1156,62 @@ mod tests {
                 .iter()
                 .any(|w| w.contains("1 embedded sounds are not assigned")
                     && w.contains("leftover.ogg")),
+            "{:?}",
+            p.warnings
+        );
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// A directly imported `.rtst_vpk` reads loose sounds from the folder it
+    /// lies in (e.g. Downloads): files that are not audio are not copied into
+    /// the library, whatever the definition names.
+    #[test]
+    fn loose_files_must_be_audio() {
+        let group = |key: &str, path: &str| {
+            obj(vec![
+                ("Key", s(key)),
+                ("soundEnabled", Node::Bool(true)),
+                ("pakSoundPath", s("")),
+                ("fileSoundPath", s(path)),
+            ])
+        };
+        let doc = Doc {
+            root: obj(vec![(
+                "groups",
+                Node::List(vec![
+                    group("FIRST_BLOOD", "sounds/first.ogg"),
+                    group("PER_KILL", r"private\tax return.pdf"),
+                    group("HEADSHOT", r"C:\Users\x\.ssh\id_ed25519"),
+                ]),
+            )]),
+            targets: HashMap::new(),
+        };
+        let c = from_doc(&doc);
+        let dir = std::env::temp_dir().join(format!("ps2t-pakloose-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("sounds")).unwrap();
+        std::fs::create_dir_all(dir.join("private")).unwrap();
+        std::fs::create_dir_all(dir.join(".ssh")).unwrap();
+        let mut ogg = b"OggS".to_vec();
+        ogg.resize(64, 0);
+        std::fs::write(dir.join("sounds/first.ogg"), &ogg).unwrap();
+        std::fs::write(dir.join("private/tax return.pdf"), b"%PDF-1.7 secret").unwrap();
+        std::fs::write(dir.join(".ssh/id_ed25519"), b"-----BEGIN OPENSSH").unwrap();
+        let out = dir.join("out");
+        let p = convert(&c, &dir, &out, "Loose").unwrap();
+        let files: Vec<&String> = p.manifest.events.iter().flat_map(|e| &e.files).collect();
+        assert_eq!(files.len(), 1, "{files:?} {:?}", p.warnings);
+        let copied: Vec<String> = std::fs::read_dir(out.join("sounds"))
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(copied, vec!["first.ogg".to_string()]);
+        assert!(
+            p.warnings
+                .iter()
+                .filter(|w| w.contains("not an audio file"))
+                .count()
+                == 2,
             "{:?}",
             p.warnings
         );

@@ -95,6 +95,16 @@ pub fn sniff_file(path: &Path) -> std::io::Result<AudioKind> {
     Ok(sniff(&buf))
 }
 
+/// The file starts like an audio file (any container [`sniff`] knows, also
+/// the ones the app cannot play). Used where a pack definition names files
+/// outside the pack: anything else is never copied.
+pub fn is_audio_file(path: &Path) -> std::io::Result<bool> {
+    Ok(!matches!(
+        sniff_file(path)?,
+        AudioKind::Unknown | AudioKind::Empty
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
