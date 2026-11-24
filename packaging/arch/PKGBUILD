@@ -1,7 +1,7 @@
 # PKGBUILD for CachyOS/Arch – builds from the repository this file is in.
 #   cd packaging/arch && makepkg -si
 pkgname=ps2-tracker
-pkgver=1.1.1
+pkgver=1.2.0
 pkgrel=1
 pkgdesc="Session stats, overlay, crosshair and voice packs for PlanetSide 2 (Census API only, never touches the game)"
 arch=('x86_64')
