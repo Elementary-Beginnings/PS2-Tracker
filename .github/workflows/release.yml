@@ -108,7 +108,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.verify.outputs.sha }}
+          # default ref: the commit of this run (the tag's commit, see verify);
+          # no ref from job outputs (CodeQL: untrusted checkout, cache poisoning)
           persist-credentials: false
       - name: System packages
         run: |
@@ -168,7 +169,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.verify.outputs.sha }}
+          # default ref: the commit of this run (the tag's commit, see verify);
+          # no ref from job outputs (CodeQL: untrusted checkout, cache poisoning)
           persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -212,7 +214,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.verify.outputs.sha }}
+          # default ref: the commit of this run (the tag's commit, see verify);
+          # no ref from job outputs (CodeQL: untrusted checkout, cache poisoning)
           persist-credentials: false
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -255,11 +258,10 @@ jobs:
     # same workflow as the test build (flatpak.yml), here with the environment
     # "release" and its Census service ID; a failure does not stop the release
     # (see the condition of the release job), the bundle is missing then
-    uses: $/.github/workflows/flatpak.yml
+    uses: ./.github/workflows/flatpak.yml
     permissions:
       contents: read
     with:
-      ref: ${{ needs.verify.outputs.sha }}
       environment: release
     secrets:
       CENSUS_DEFAULT_SERVICE_ID: ${{ secrets.CENSUS_DEFAULT_SERVICE_ID }}
@@ -279,7 +281,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.verify.outputs.sha }}
+          # default ref: the commit of this run (the tag's commit, see verify);
+          # no ref from job outputs (CodeQL: untrusted checkout, cache poisoning)
           persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
