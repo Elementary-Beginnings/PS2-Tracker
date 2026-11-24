@@ -261,10 +261,13 @@ pub struct ImportStats {
     pub background: bool,
 }
 
-/// Checks a relative path: no absolute paths, no `..`.
+/// Checks a relative path: no absolute paths, no `..`. A backslash is a
+/// separator on every platform (manifests written on Windows), so the result
+/// and the checks are the same on Linux and Windows.
 pub fn safe_relative(p: &str) -> Option<PathBuf> {
-    let path = Path::new(p);
-    if p.is_empty() || path.is_absolute() {
+    let norm = p.replace('\\', "/");
+    let path = Path::new(&norm);
+    if norm.is_empty() || path.is_absolute() {
         return None;
     }
     let mut out = PathBuf::new();
@@ -276,6 +279,26 @@ pub fn safe_relative(p: &str) -> Option<PathBuf> {
         }
     }
     (!out.as_os_str().is_empty()).then_some(out)
+}
+
+/// The manifest path as it is spelled on disk, with `/`. Packs made on
+/// Windows may differ in case from the files (NTFS ignores it, Linux does
+/// not); the exact spelling wins, otherwise a case-insensitive match. No
+/// symlinks, nothing outside the pack (see [`crate::recursion::resolve_path`]).
+fn on_disk(dir: &Path, f: &str) -> Option<String> {
+    let rel = safe_relative(f)?;
+    if dir.join(&rel).is_file() {
+        return Some(slash(&rel));
+    }
+    let rel = crate::recursion::resolve_path(dir, f).ok()?;
+    dir.join(&rel).is_file().then(|| slash(&rel))
+}
+
+fn slash(rel: &Path) -> String {
+    rel.components()
+        .map(|c| c.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/")
 }
 
 fn has_audio_ext(p: &Path) -> bool {
@@ -330,13 +353,11 @@ impl Manifest {
 impl VoicePack {
     pub fn load(dir: &Path) -> Result<Self, PackError> {
         let text = std::fs::read_to_string(dir.join(MANIFEST))?;
-        let manifest = Manifest::parse(&text)?;
-        for e in &manifest.events {
-            for f in &e.files {
-                let p = dir.join(safe_relative(f).unwrap_or_default());
-                if !p.is_file() {
-                    return Err(PackError::Invalid(format!("file missing: {f}")));
-                }
+        let mut manifest = Manifest::parse(&text)?;
+        for e in &mut manifest.events {
+            for f in &mut e.files {
+                *f = on_disk(dir, f)
+                    .ok_or_else(|| PackError::Invalid(format!("file missing: {f}")))?;
             }
         }
         Ok(Self {
@@ -1034,6 +1055,43 @@ pub fn create_pack_from_mapping(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn manifest_from_windows_loads_everywhere() {
+        let dir = std::env::temp_dir().join(format!("ps2t-winpack-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("Sounds")).unwrap();
+        std::fs::write(dir.join("Sounds").join("Kill.ogg"), b"OggS").unwrap();
+        std::fs::write(dir.join("Sounds").join("death.ogg"), b"OggS").unwrap();
+        std::fs::write(
+            dir.join(MANIFEST),
+            "[pack]\nname = \"Win\"\n\n[[event]]\nevent = \"kill\"\nfiles = [\"Sounds\\\\Kill.ogg\"]\n\n\
+             [[event]]\nevent = \"death\"\nfiles = [\"sounds/DEATH.OGG\"]\n",
+        )
+        .unwrap();
+        let p = VoicePack::load(&dir).unwrap();
+        assert_eq!(
+            p.manifest.events[0].files,
+            vec!["Sounds/Kill.ogg".to_string()]
+        );
+        assert_eq!(
+            p.manifest.events[1].files,
+            vec!["Sounds/death.ogg".to_string()]
+        );
+        assert!(
+            p.file_path(&p.manifest.events[1].files[0])
+                .unwrap()
+                .is_file()
+        );
+        // a backslash never leaves the pack
+        assert!(safe_relative("..\\x.ogg").is_none());
+        assert!(safe_relative("sounds\\..\\..\\x.ogg").is_none());
+        assert_eq!(
+            safe_relative("a\\b.ogg").unwrap(),
+            Path::new("a").join("b.ogg")
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn suggested_kill_key_without_per_kill() {
         let f = |n: usize| (0..n).map(|i| format!("sounds/{i}.ogg")).collect();
