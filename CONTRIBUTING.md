@@ -6,9 +6,11 @@ kept in German (`README.de.md`, update both). User guides live in the
 is `docs/wiki/` (one file per page, file name = page name, links between pages
 as `[Text](Page-Name)`), published by `.github/workflows/wiki.yml` on every
 push to `main`. Edit the files there, not the wiki itself – direct wiki edits
-are overwritten. Issues, pull requests and code
-comments may be in English or German; commit messages in this repository are
-German. UI texts are English (`src/lib/i18n/en.ts`).
+are overwritten. Everything that is public
+is in English, because the ELME community is international: commit messages,
+pull requests, issues, release notes, code comments and UI texts
+(`src/lib/i18n/en.ts`). Commit and PR titles also show up in the community
+Discord through repository webhooks.
 
 ## Ground rules
 
