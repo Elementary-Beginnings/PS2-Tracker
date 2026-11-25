@@ -1,5 +1,7 @@
 # Online Sync
 
+![Settings → Online sync (switched off)](https://raw.githubusercontent.com/Elementary-Beginnings/ps2-tracker/main/docs/screenshots/online-sync.png)
+
 For members of the ELME outfit: the tracker can upload your finished sessions
 to the ELME stats server, **stats.elme.games**, so you can see them there.
 Online sync is **off by default**. Everything stays on your computer as before;
@@ -9,15 +11,21 @@ the upload is extra.
 
 1. *Settings → Online sync* → tick *Upload my finished sessions to
    stats.elme.games* and confirm.
-2. *Sign in with Discord*. The tracker opens Discord in your browser; allow the
-   sign-in and go back to the tracker. The browser shows a short "Signed in"
-   page that you can close.
+2. *Sign in with Discord*. The tracker opens Discord in your default browser;
+   allow the sign-in and go back to the tracker. The browser shows a short
+   "Signed in" page that you can close. (On Windows, 1.2.0 opened a File
+   Explorer window instead of the browser; fixed in 1.2.1.)
 3. The settings show your Discord ID, the ELME characters linked to your
    account and the upload queue.
 
 Your Discord account has to be linked to an ELME character first (verification
 in the ELME Discord). Without that the server answers "not linked" and the
 tracker says so.
+
+The settings page also lists exactly what is uploaded (see below) and links
+the privacy policy of the stats server. The screenshot shows the page while
+online sync is off; before you switch it on and sign in, the app makes no
+request to the stats server.
 
 ## What is uploaded, and when
 

@@ -27,8 +27,10 @@ Session stats, overlay, crosshair and voice packs for **PlanetSide 2** on Linux
   ([format reference](Voice-Pack-Format))
 - [Squad and Outfit Tracking](Squad-and-Outfit-Tracking) – friends and outfit
   members, “Squad top 3”
-- [Discord Rich Presence](Discord-Rich-Presence)
-- [Online Sync](Online-Sync)
+- [Discord Rich Presence](Discord-Rich-Presence) – session in your Discord
+  status (ELME application by default)
+- [Online Sync](Online-Sync) – upload finished sessions to stats.elme.games
+  (ELME members, opt-in)
 - [Auto-Update](Auto-Update) – signed in-app updates (opt-in)
 - [Hotkeys](Hotkeys) – global hotkeys and command line
 

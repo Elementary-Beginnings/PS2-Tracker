@@ -10,7 +10,8 @@ three steps:
 1. **Census service ID** – official builds contain a built-in default, so the
    field can stay empty; your own ID takes precedence (see below).
 2. **Your character** – search a character by name and add it. More
-   characters (e.g. one per faction) can be added later under *Settings*.
+   characters (e.g. one per faction) can be added later on the *Characters*
+   page.
 3. **Ready** – optionally import a voice pack or pick a crosshair.
 
 From then on a **session starts automatically** when you log in or with your
@@ -22,8 +23,14 @@ live page start and end a session by hand, resume a paused one at once, and
 open the last session again (*Resume last session*, up to 6 hours after it
 ended).
 
+Closing the main window hides the app in the tray, where it keeps tracking.
+Where no tray icon can be shown (GNOME without an AppIndicator extension),
+closing the window quits the app instead, see
+[Troubleshooting](Troubleshooting-and-FAQ#no-tray-icon-gnome).
+
 Next steps: [Overlay and Move Mode](Overlay-and-Move-Mode),
-[Crosshair](Crosshair), [Voice Packs](Voice-Packs), [Hotkeys](Hotkeys).
+[Crosshair](Crosshair), [Voice Packs](Voice-Packs), [Hotkeys](Hotkeys),
+[Online Sync](Online-Sync) (ELME members).
 
 ## Census service ID
 

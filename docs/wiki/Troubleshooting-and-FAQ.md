@@ -114,6 +114,19 @@ XWayland the Overlay page lists them as not registered; bind the command line
 switches (`ps2-tracker --toggle-overlay` and others) to desktop shortcuts, see
 [Hotkeys](Hotkeys).
 
+## Online sync: sign-in opens File Explorer (Windows)
+
+Version 1.2.0 opened a File Explorer window instead of the browser on Windows
+when you clicked *Sign in with Discord* or *Privacy policy*. Update to 1.2.1 or
+newer; links then open in the default browser. Other sign-in problems (no
+keyring, link not confirmed yet): see [Online Sync](Online-Sync#sign-in-and-keyring).
+
+## Voice pack made on Windows does not load (Linux)
+
+Up to 1.2.1 a pack whose `voicepack.toml` was written on Windows could fail to
+load on Linux: backslashes in file paths, or file names that differ in
+upper/lower case from the files. Since 1.2.2 such packs load.
+
 ## Ctrl+F2 does nothing
 
 KWin binds Ctrl+F2 to “Switch to Desktop 2” by default. Free it or choose

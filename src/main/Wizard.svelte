@@ -20,7 +20,8 @@
 
   let step = $state(1);
   // svelte-ignore state_referenced_locally
-  let sid = $state(config.census.service_id === "example" ? "" : config.census.service_id);
+  // browser preview: a fresh official build (empty field, built-in default)
+  let sid = $state(config.census.service_id === "example" || !inTauri() ? "" : config.census.service_id);
   let showSid = $state(false);
   let name = $state("");
   let found = $state<CharacterInfo | null>(null);
@@ -29,7 +30,7 @@
   let draft = $state<Config>($state.snapshot(config) as Config);
 
   /** Builds with a built-in project service ID can go on without an own one. */
-  let hasBuiltIn = $state(false);
+  let hasBuiltIn = $state(!inTauri());
   onMount(() => {
     if (inTauri()) api.serviceIdSource().then((x) => (hasBuiltIn = x === "builtin")).catch(() => {});
   });

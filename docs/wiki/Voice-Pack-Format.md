@@ -62,7 +62,9 @@ Rules:
 - An entry without `files` means “no sound in this pack”: the sound comes from the
   next active pack, the pop-up follows this entry.
 - Paths are relative, without `..` and without absolute paths; symlinks are not
-  taken over. Limits: 20 MB per file, 200 MB per pack, 1000 files.
+  taken over. `\` counts as a separator like `/` on every platform, and when no
+  file has exactly the spelling of the manifest, a file that differs only in
+  upper/lower case is used (packs written on Windows, since 1.2.2). Limits: 20 MB per file, 200 MB per pack, 1000 files.
 - Own files per event (Sounds & Voice → “File …”) take precedence over all packs.
 
 ## Recursion format (`.rtst_vpk`)

@@ -20,7 +20,12 @@ Import*). Three Recursion formats are recognised:
 
 A .NET BinaryFormatter reader is included as a precaution. Packs are only read
 (size and depth limits, no path outside the pack folder, foreign absolute paths
-are ignored); the repository contains no Recursion files. The Recursion format
+are ignored); the repository contains no Recursion files. A `.rtst_vpk`
+imported on its own (XML or binary) takes the sound files it names from the
+folder it lies in, e.g. Downloads: only audio files (recognised by their
+content, at most 20 MB each) are copied into the library, anything else the
+pack names is skipped. Packs made on Windows load on Linux too (backslashes in
+paths, file names in a different upper/lower case than in the manifest). The Recursion format
 was worked out solely from an own pack (clean room).
 
 Supported audio: Ogg Vorbis, MP3, FLAC and WAV; Ogg Opus is recognised and

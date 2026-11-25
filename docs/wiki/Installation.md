@@ -39,7 +39,10 @@ then use the package from the release or `makepkg` from the repository.
 
 Dependencies (installed by `pacman`/`makepkg`): `webkit2gtk-4.1`, `gtk3`,
 `libayatana-appindicator`, `alsa-lib`, `librsvg`; for building also `rust`,
-`nodejs`, `pnpm`. Under PipeWire, `pipewire-alsa` is needed.
+`nodejs`, `pnpm`. Under PipeWire, `pipewire-alsa` is needed. Without
+`libayatana-appindicator` (other distributions, tarball) the app still starts,
+only without a tray icon. The optional [online sync](Online-Sync) needs a
+keyring with the Secret Service interface (GNOME Keyring, KWallet).
 
 Autostart: `cp /usr/share/applications/ps2-tracker.desktop ~/.config/autostart/`
 and set `Exec=ps2-tracker --hidden` there.
@@ -64,7 +67,9 @@ during installation when Flathub is set up). The permissions and their reasons
 are in the manifest
 [`packaging/flatpak/dev.herz.Ps2Tracker.yml`](https://github.com/Elementary-Beginnings/ps2-tracker/blob/main/packaging/flatpak/dev.herz.Ps2Tracker.yml):
 X11 (overlay, crosshair and focus detection run through XWayland), Wayland,
-PulseAudio, network, tray. No access to the home directory – packs and
+PulseAudio, network, tray (the bundle contains `libayatana-appindicator`, which
+the GNOME runtime does not provide), Secret Service (keyring for the optional
+[online sync](Online-Sync)). No access to the home directory – packs and
 crosshairs are imported through the file dialog of the portal. The data is
 under `~/.var/app/dev.herz.Ps2Tracker/`. Global hotkeys go through X11 and work
 in the sandbox with `--socket=x11`; under Wayland create KDE shortcuts as
@@ -102,5 +107,6 @@ have WebView2).
   [Hotkeys](Hotkeys).
 - The move layer reads with `GetClipCursor` whether the game confines the
   mouse pointer and then shows “The game holds the cursor” as on Linux. The
-  Win32 calls without a safe wrapper are in `src-tauri/src/win_console.rs`, the
-  only module with `unsafe` code.
+  Win32 calls without a safe wrapper (console, cursor clip rectangle,
+  `ShellExecuteW` for links and “Open folder”) are in
+  `src-tauri/src/win_console.rs`, the only module with `unsafe` code.

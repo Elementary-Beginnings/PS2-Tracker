@@ -8,6 +8,7 @@ after [SemVer](https://semver.org/).
 ### Changed
 
 - Discord Rich Presence: official builds use the ELME Discord application by default (the same application as the online sync). The field is now *Custom Discord application ID (optional)*; leave it empty for the default. The default ID is not shown in the settings, the log or the configuration file. A custom ID stays as it is; a stored copy of the default is cleared at start. Builds without the default (self-built) still need a custom ID.
+- Overlay page: the hint on hotkeys under Wayland points to the wiki page *Hotkeys* instead of the README.
 - Build: the separate build variable for the Rich Presence application (`DISCORD_APP_ID`) is gone; the ELME application from `SYNC_DISCORD_CLIENT_ID` is used for both.
 
 ## [1.2.2] – 2026-11-24

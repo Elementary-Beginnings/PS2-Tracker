@@ -17,8 +17,16 @@ game:
   text with a short pulse instead of flickering, and with *reduce motion* set
   in the system only a fade is used; the pop-up window is only mapped while a
   pop-up shows);
-- optional block “Squad top 3”, see
+- widgets: session stats, comparison with lifetime, kill feed (optionally with
+  your own class), weapon list, achievement and voice notifications, the pack's
+  achievement background, compact mode (three kill feed rows), K/D incl.
+  revives, and the optional block “Squad top 3”, see
   [Squad and Outfit Tracking](Squad-and-Outfit-Tracking);
+- *Only show while the game window is active* hides the overlay while another
+  window is in front (game window picker as on the
+  [Crosshair](Crosshair#only-while-the-game-is-active) page);
+- background opacity, font size, monitor, and the hotkey *Toggle overlay*
+  (Ctrl+Shift+F10, see [Hotkeys](Hotkeys));
 - position by anchor, offset and “Reset position” on the Overlay page, or
   directly over the game with the move layer; always fully on the monitor.
 
@@ -115,7 +123,7 @@ the script API `layer` is read-only and `keepAbove` only lifts into `Above`.
 - **Transparency** needs a compositor; KWin always composites.
 - **Click-through**: GTK input region; tao leaves a 1×1 pixel area at the top
   left clickable, which lies in the transparent border.
-- **Hotkeys** under Wayland: see [Hotkeys](Hotkeys#kde-shortcuts-wayland).
+- **Hotkeys** under Wayland: see [Hotkeys](Hotkeys#desktop-shortcuts-wayland).
 - **HiDPI/fractional scaling**: window size and position in physical pixels;
   the log names monitor, scaling and window position on every change.
 

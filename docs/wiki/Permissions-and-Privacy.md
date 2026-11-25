@@ -122,8 +122,9 @@ Off by default (`[online_sync] enabled = false`). Details for users:
   contacted lazily (`secret.rs`, `KeyringSecret`).
 - **Sign-in:** Discord OAuth 2, authorization code with PKCE (S256), scope
   `identify`, random `state` checked on the callback (`pkce.rs`, `loopback.rs`).
-  The system browser opens Discord (`sync.rs`, `open_url`: https only, no
-  shell). The redirect goes to a listener **only on 127.0.0.1**, first free
+  The default browser opens Discord (`sync.rs`, `open_url`: https only, no
+  shell; `xdg-open` on Linux, inside Flatpak the OpenURI portal,
+  `ShellExecuteW` with the verb `open` on Windows). The redirect goes to a listener **only on 127.0.0.1**, first free
   port of 47831/47832/47833, only during the sign-in (at most 5 minutes), for
   exactly one `/callback` with the right `state`; other requests get an error
   page and do not end the wait. Connections are served side by side (at most
@@ -184,7 +185,9 @@ The app reads and writes only in its own folders
 
 - **Service ID:** your own ID only in `config.toml` (empty = default). The file
   is created with mode **0600** when saving (`config.rs`, `Config::save`:
-  temporary file with `set_permissions(0o600)`, then `rename`). Alternatively the
+  temporary file with `set_permissions(0o600)`, then `rename`; each save has its
+  own temporary file, and on Windows the rename is retried briefly while
+  another program holds the file open). Alternatively the
   environment variable `PS2_SERVICE_ID`; it is never written to the file, nor is
   the built-in default of official builds.
 - **Imports** (voice packs, crosshairs, own sounds) are read only from paths the
@@ -243,7 +246,10 @@ The app reads and writes only in its own folders
   the online sync, in one transaction; `store.rs`, `migrate`). No data is deleted.
 - “Open folder” opens only one of the fixed app folders (`commands.rs`,
   `open_folder`: fixed list `config`/`data`/`voicepacks`/`crosshairs`/`logs`, no
-  paths from the user interface) with `xdg-open` or Explorer.
+  paths from the user interface) with `xdg-open` (inside Flatpak the OpenURI
+  portal) or, on Windows, `ShellExecuteW` with the verb `open`, which shows the
+  folder in File Explorer without starting `explorer.exe` with the path as its
+  command line.
 
 ## X11 / XWayland
 
@@ -345,7 +351,11 @@ feedback exist only for the own characters.
 
 - Single instance: own name `dev.herz.ps2tracker.SingleInstance` on the session
   bus (`tauri-plugin-single-instance`), so a second start only notifies the first.
-- Tray icon through StatusNotifierItem (`libayatana-appindicator`, `tray.rs`).
+- Tray icon through StatusNotifierItem (`libayatana-appindicator`, loaded at
+  run time; `tray.rs`). Without the library the app starts without a tray. On
+  GNOME the app asks the bus once at start whether the name
+  `org.kde.StatusNotifierWatcher` has an owner (`NameHasOwner`); without one no
+  tray icon is visible, and closing the main window quits the app.
 
 ## Tauri capabilities and CSP
 
@@ -353,7 +363,7 @@ Each window may call only the commands listed in `src-tauri/capabilities/*.json`
 
 | Window | Allowed |
 |---|---|
-| `main` | `core:event:default`, `core:window:default`, `core:webview:default` (read-only), dialogs `ask`/`open`/`save` and the app commands the main window calls (not `toast_background`, `crosshair_render_info`, `overlay_content_size` and the commands of the move layer); among them `hotkey_status` (hotkeys that could not be registered, read-only) and the session controls `start_session`, `stop_session`, `resume_session`, `last_session` and `reopen_session` (they take only a character ID, parsed as a number, and work on the app's own database; no file access); the online sync commands `sync_status`, `sync_login`, `sync_cancel_login`, `sync_logout`, `sync_delete_account`, `sync_upload_session` (a session ID), `sync_upload_existing` and `sync_open_privacy` (opens only the privacy page of the configured server). HTTP calls of the online sync run in the Rust backend, the CSP stays unchanged. The other windows cannot start, end or resume sessions. A test (`commands.rs`, `every_command_is_declared_and_allowed`) checks both directions: every command is declared and allowed for a window, and every permission belongs to an existing command |
+| `main` | `core:event:default`, `core:window:default`, `core:webview:default` (read-only), dialogs `ask`/`open`/`save` and the app commands the main window calls (not `toast_background`, `crosshair_render_info`, `overlay_content_size` and the commands of the move layer); among them `hotkey_status` (hotkeys that could not be registered, read-only), `discord_default_available` (only whether the build has a default Discord application, never its ID) and the session controls `start_session`, `stop_session`, `resume_session`, `last_session` and `reopen_session` (they take only a character ID, parsed as a number, and work on the app's own database; no file access); the online sync commands `sync_status`, `sync_login`, `sync_cancel_login`, `sync_logout`, `sync_delete_account`, `sync_upload_session` (a session ID), `sync_upload_existing` and `sync_open_privacy` (opens only the privacy page of the configured server). HTTP calls of the online sync run in the Rust backend, the CSP stays unchanged. The other windows cannot start, end or resume sessions. A test (`commands.rs`, `every_command_is_declared_and_allowed`) checks both directions: every command is declared and allowed for a window, and every permission belongs to an existing command |
 | `overlay` | events, `get_snapshot`, `get_config`, `toast_background`, `get_overlay_state`, `overlay_content_size` (reports the size of the content), `class_icons` (cached class icons, read-only) |
 | `popup` | events, `get_config`, `toast_background`, `get_overlay_state`, `overlay_content_size` |
 | `movelayer` | events, `get_config`, `get_snapshot`, `toast_background`, `get_overlay_state` (preview of the objects) and `move_layer_state`/`_set`/`_select`/`_end`/`_reset`/`_monitor` (end of a drag, bar) and `move_layer_activity` (pointer movement only resets the idle timer); positions are limited to the monitor in the backend |
@@ -375,7 +385,7 @@ Manifest: `packaging/flatpak/dev.herz.Ps2Tracker.yml`.
 | `--device=dri` | GPU rendering of WebKitGTK | software rendering |
 | `--socket=pulseaudio` | sound | silent |
 | `--share=network` | Census API and event stream | no data |
-| `--talk-name=org.kde.StatusNotifierWatcher` | tray icon | no tray |
+| `--talk-name=org.kde.StatusNotifierWatcher` | tray icon (the bundle contains `libayatana-appindicator`, which the GNOME runtime lacks) | no tray |
 | `--own-name=dev.herz.ps2tracker.SingleInstance` | single instance over D-Bus | several instances |
 | `--filesystem=xdg-run/discord-ipc-0`, `…-1` | optional Discord Rich Presence (local socket) | no Rich Presence |
 | `--talk-name=org.freedesktop.secrets` | optional online sync: refresh token in the keyring (Secret Service) | no online sync sign-in |
@@ -404,6 +414,9 @@ rules, no hooks; no root is needed at runtime. The AppImage installs nothing.
   is opened only with `PROCESS_QUERY_LIMITED_INFORMATION` (crate
   `active-win-pos-rs`, `src/win/platform_api.rs`). There is no list of all windows
   on Windows (it would need unsafe FFI calls that the project keeps out).
+- Links (Discord sign-in, privacy page) and “Open folder” go through
+  `ShellExecuteW` (verb `open`; `src-tauri/src/win_console.rs`, `shell_open`):
+  links open in the default browser, folders in File Explorer.
 - Not code-signed: SmartScreen warns; compare the checksum, see [Installation](Installation#windows-1011).
 
 ## What the app does not do

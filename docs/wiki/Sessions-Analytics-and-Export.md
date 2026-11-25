@@ -63,9 +63,12 @@
 
 ## History
 
-Sessions are stored in SQLite (schema version 3, session data version 4; old
-databases are migrated at startup; a damaged file is moved aside and created
-anew): list, detail view, export and import.
+Sessions are stored in SQLite (schema version 4, session data version 4; old
+databases are migrated at startup without removing data; a damaged file is
+moved aside and created anew): list, detail view, export and import. With
+[online sync](Online-Sync) switched on, the list has an *Online* column with
+the upload state of each session, and the detail view has *Upload now* /
+*Retry upload*.
 
 ![History](https://raw.githubusercontent.com/Elementary-Beginnings/ps2-tracker/main/docs/screenshots/history.png)
 
@@ -79,7 +82,15 @@ anew): list, detail view, export and import.
   number, percent and date formats (UTC).
 - **JSON** in the versioned format `ps2-tracker-session` (schema:
   [`docs/session-file.schema.json`](https://github.com/Elementary-Beginnings/ps2-tracker/blob/main/docs/session-file.schema.json)).
-- **CSV** as a simple event list.
+- **CSV** as a simple event list. Name cells that start with `=`, `+`, `-`,
+  `@`, tab or carriage return get a leading `'`, so a spreadsheet program does
+  not run them as formulas. Excel and the CSV separator: see
+  [FAQ](Troubleshooting-and-FAQ#faq).
+
+Before writing, the app checks the file chosen in the save dialog: the
+extension of the format, an existing folder, a plain file, and not inside the
+app's own folders. The same applies to the chart image (Analytics → PNG) and
+the voice pack ZIP export.
 
 ## Import
 

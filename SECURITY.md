@@ -63,9 +63,9 @@ that:
   BinaryFormatter, protobuf) are parsed by our own readers into plain values; no
   types are instantiated and nothing is deserialised in the .NET sense. No
   `unsafe` code in the project (`unsafe_code = "deny"` in the workspace lints),
-  with one exception: `src-tauri/src/win_console.rs` (Windows only) makes three
-  Win32 calls – attach to or open a console, read the cursor clip rectangle –
-  each with a SAFETY note; a test fails if `unsafe` appears anywhere else.
+  with one exception: `src-tauri/src/win_console.rs` (Windows only) makes a few
+  Win32 calls – attach to or open a console, read the cursor clip rectangle,
+  open a link or folder with `ShellExecuteW` – each with a SAFETY note; a test fails if `unsafe` appears anywhere else.
   The parsers above contain no `unsafe`.
 - **Limits** (`recursion_pak.rs`, `voicepack.rs`, `nrbf.rs`, `protowire.rs`,
   `sessionfile.rs`): definition file ≤ 256 MB, embedded file ≤ 32 MB, sound

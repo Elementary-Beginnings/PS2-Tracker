@@ -14,13 +14,18 @@ we aim to confirm a report within 7 days.
 ## What the app does and does not do
 
 - Talks only to the Daybreak Census API (`census.daybreakgames.com`,
-  `push.planetside2.com`), after opt-in to the update endpoint on GitHub, and
-  locally to Discord and (if enabled) an OBS endpoint on `127.0.0.1`.
+  `push.planetside2.com`), after opt-in to the update endpoint on GitHub and to
+  the ELME stats server (`stats.elme.games`, [online sync](Online-Sync), with a
+  Discord sign-in in the browser), and locally to Discord and (if enabled) an
+  OBS endpoint on `127.0.0.1`.
 - Never touches the game process; no telemetry.
 - Voice packs and session files are untrusted input: parsed by own readers as
   data only, with size and depth limits, no paths outside the app's folders,
-  mutation tests against panics. No `unsafe` code except three documented Win32
-  calls.
+  mutation tests against panics and cargo-fuzz targets for the parsers of
+  foreign input (session file, voice pack manifest, Recursion formats, event
+  stream messages; `fuzz/`, weekly in CI). No `unsafe` code except a few
+  documented Win32 calls in `src-tauri/src/win_console.rs` (console, cursor
+  clip rectangle, `ShellExecuteW` for links and folders).
 - Tauri capabilities minimal per window, CSP without remote content.
 
 Everything with source code locations:

@@ -106,7 +106,7 @@ export function demoConfig(p?: URLSearchParams): Config {
       show_toasts: true,
       show_comparison: true,
       show_my_class: p?.has("myclass") ?? false,
-      hotkey_edit: "Ctrl+Shift+F9",
+      hotkey_edit: "Ctrl+F2",
       hotkey_finish_move: "Ctrl+Escape",
       move_idle_timeout_secs: 300,
       pack_background: true, compact: false, auto_hide: false, hotkey_toggle: "Ctrl+Shift+F10",

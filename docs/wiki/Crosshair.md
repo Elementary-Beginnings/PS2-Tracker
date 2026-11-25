@@ -28,12 +28,25 @@ files stay unchanged. As files:
 
 ## Only while the game is active
 
+*Only show while the game window is active* hides the crosshair while another
+window is in front. Which window counts as the game is set under **Game
+window**: *Auto-detect PlanetSide 2* (default) or a window picked from the list
+of open windows (*Refresh* updates it, *Test* reports whether a matching window
+is found). The choice is saved as a rule (window class, title, process name),
+not as a window ID, so it still matches after a game restart. The line *Game
+window: active / in background / not running / unknown* shows the current
+state. The same picker appears on the Overlay page when the overlay is set to
+show only with the game.
+
 Under X11/XWayland the app reads `_NET_ACTIVE_WINDOW`, `WM_CLASS` and the
 window title (under Proton PlanetSide 2 reports itself as `steam_app_218230`);
-on Windows the foreground window and its process name. The crosshair is hidden
-only when another window is certainly active; if the detection is uncertain, it
-stays visible. The detected state is under *Crosshair → Check active window*
-and in the log. Under KDE Plasma see also
+on Windows the foreground window and its process name. Only XWayland/X11
+windows are listed; PlanetSide 2 under Proton is always one. The crosshair is
+hidden only when another window is certainly active; if the detection is
+uncertain, it stays visible. *Game window → Advanced* has the match pattern
+for auto-detection (`WM_CLASS` or title, `|` separates) and *Check active
+window*, which shows the detected state and window backend; the log has it
+too. Under KDE Plasma see also
 [Overlay and Move Mode](Overlay-and-Move-Mode#kde-plasma-wayland).
 
 ## Hit feedback

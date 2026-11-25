@@ -501,7 +501,7 @@ export const en = {
     hkToggle: "Toggle overlay",
     hkEdit: "Move ↔ click-through",
     waylandHint:
-      "Global hotkeys only work through X11/XWayland. Under KDE Plasma (Wayland) this is more reliable: in System Settings → Shortcuts → Custom Shortcuts add a command such as \"ps2-tracker --toggle-overlay\" or \"--toggle-edit\". See the README for details.",
+      "Global hotkeys only work through X11/XWayland. Under KDE Plasma (Wayland) this is more reliable: in System Settings → Shortcuts → Custom Shortcuts add a command such as \"ps2-tracker --toggle-overlay\" or \"--toggle-edit\". Details: wiki page “Hotkeys”.",
     // overlay window
     moveBar: "Move overlay – drag; bottom-right corner: resize",
     done: "Done",
