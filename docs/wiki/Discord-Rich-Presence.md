@@ -8,11 +8,12 @@ kills, session time and optionally continent and server. Off by default.
 ## Setup
 
 1. *Settings → Updates & Discord* → tick **Show my session in Discord**.
-2. **Discord application ID:** leave the field empty to use the Discord
-   application built into official builds. Your own application takes
-   precedence: Discord Developer Portal → *New Application* → copy the
-   *Application ID* (17–20 digits). Builds without a built-in application need
-   an ID, otherwise the feature stays off.
+2. **Custom Discord application ID (optional):** leave the field empty
+   (placeholder *Default: ELME*) to use the ELME Discord application built into
+   official builds. Your own application takes precedence: Discord Developer
+   Portal → *New Application* → copy the *Application ID* (17–20 digits); other
+   input is rejected. Self-built versions have no default: there the field
+   says *Required in this build*, and without an own ID the feature stays off.
 3. Choose what to show (character and faction, kills, session time, continent
    and server).
 
@@ -25,8 +26,13 @@ kills, session time and optionally continent and server. Off by default.
 - Updates at most every 15 seconds. If Discord is not running, the app retries
   quietly with a growing interval (up to 5 minutes).
 - Continent and server appear only once the running session knows them.
-- The built-in application ID (`PS2_DEFAULT_DISCORD_APP_ID` at build time) is a
-  public client ID, not a secret.
+- The default is the ELME Discord application, the same one the
+  [online sync](Online-Sync) signs in with (`PS2_SYNC_DISCORD_CLIENT_ID` at
+  build time). Its ID is a public client ID, not a secret, but the app does not
+  show it: not in the field, not in the log and not in `config.toml`. An empty
+  field means "default", so the default can change with an update without
+  touching your configuration; a stored copy of the default is cleared at
+  start, your own ID is kept.
 - Flatpak: only `xdg-run/discord-ipc-0` and `xdg-run/discord-ipc-1` are
   allowed. That reaches a natively installed Discord. Whether it reaches the
   Discord Flatpak (its socket lives under `xdg-run/app/com.discordapp.Discord/`)

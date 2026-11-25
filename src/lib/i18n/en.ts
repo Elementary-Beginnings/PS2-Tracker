@@ -271,9 +271,13 @@ export const en = {
     discordTitle: "Discord Rich Presence",
     discordIntro:
       "Shows your session in your Discord status, through the Discord app running on this computer (local IPC, no internet connection of its own).",
-    appId: "Discord application ID",
+    appId: "Custom Discord application ID (optional)",
+    appIdDefault: "Default: ELME",
+    appIdNeeded: "Required in this build",
     appIdHint:
-      "Empty = the Discord application of official builds (if the build has one). Your own application takes precedence: Discord Developer Portal → New Application → copy the Application ID. Builds without a built-in application need an ID, otherwise the feature stays off.",
+      "Empty = the ELME Discord application. Your own application takes precedence: Discord Developer Portal → New Application → copy the Application ID.",
+    appIdNoDefault:
+      "This build has no default Discord application (self-built): enter the ID of your own application, otherwise Rich Presence stays off.",
     badId: "The application ID has 17–20 digits",
     discordEnable: "Show my session in Discord",
     show: "Show",

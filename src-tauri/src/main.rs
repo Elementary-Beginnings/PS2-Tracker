@@ -479,6 +479,7 @@ fn main() {
             commands::startup_notices,
             commands::hotkey_status,
             commands::service_id_source,
+            commands::discord_default_available,
             commands::class_icons,
             commands::app_info,
             commands::move_layer_activity,

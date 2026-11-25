@@ -71,6 +71,7 @@ export const api = {
   overlaySetEdit: (edit: boolean) => invoke<void>("overlay_set_edit", { edit }),
   hotkeyStatus: () => invoke<HotkeyFailure[]>("hotkey_status"),
   serviceIdSource: () => invoke<ServiceIdSource>("service_id_source"),
+  discordDefaultAvailable: () => invoke<boolean>("discord_default_available"),
   classIcons: () => invoke<Partial<Record<ClassId, string>>>("class_icons"),
   appInfo: () => invoke<AppInfo>("app_info"),
   moveLayerActivity: () => invoke<void>("move_layer_activity"),

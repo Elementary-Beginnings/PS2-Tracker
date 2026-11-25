@@ -117,7 +117,6 @@ jobs:
       - name: Build-time defaults (temporary .cargo/config.toml)
         env:
           CENSUS_DEFAULT_SERVICE_ID: ${{ secrets.CENSUS_DEFAULT_SERVICE_ID }}
-          DISCORD_APP_ID: ${{ vars.DISCORD_APP_ID }}
           SYNC_DISCORD_CLIENT_ID: ${{ vars.SYNC_DISCORD_CLIENT_ID }}
         run: bash tools/flatpak_cargo_env.sh write
       - uses: flatpak/flatpak-github-actions/flatpak-builder@79327416609af08178ad73b352877e51450790b3 # v6.8

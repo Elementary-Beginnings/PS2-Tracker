@@ -97,8 +97,9 @@ checked with `zizmor`. Downloads can be verified with
   - secrets `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` –
     updater signatures (without them there are no `.sig` files and no
     `latest.json`).
-- Actions variable `DISCORD_APP_ID` – built-in Discord application (public
-  value, 17–20 digits).
+- Actions variable `SYNC_DISCORD_CLIENT_ID` – the ELME Discord application
+  (public value, 17–20 digits): online sync sign-in and the default
+  application of Discord Rich Presence. The app never shows or logs it.
 - *Settings → Security*: private vulnerability reporting on (see
   `SECURITY.md`), Dependabot alerts and security updates on.
 - Ruleset for `main` (CI required, no force pushes) and for tags `v*` (no

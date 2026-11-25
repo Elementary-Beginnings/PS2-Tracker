@@ -318,8 +318,11 @@ device** is opened (rodio without the feature `recording`, `src-tauri/Cargo.toml
 
 Discord Rich Presence (`src-tauri/src/discord.rs`, crate `discord-rich-presence`)
 is off by default and becomes active only when switched on and an application ID
-is available: the user's own, otherwise the one built into official builds
-(`PS2_DEFAULT_DISCORD_APP_ID`, a public client ID, not a secret). Connection **only locally** to the running Discord app: Unix socket
+is available: the user's own, otherwise the ELME Discord application built into
+official builds (`PS2_SYNC_DISCORD_CLIENT_ID`, the same one the online sync
+signs in with; a public client ID, not a secret). The app never shows the
+built-in ID, writes it to the configuration or logs it; the user interface
+only learns whether the build has one. Connection **only locally** to the running Discord app: Unix socket
 `$XDG_RUNTIME_DIR/discord-ipc-0…9` or named pipe `\\.\pipe\discord-ipc-N` on
 Windows. Only the details chosen in the settings are sent (character/faction, K/D,
 kills, start time of the session), at most every 15 s; Discord shows them in the

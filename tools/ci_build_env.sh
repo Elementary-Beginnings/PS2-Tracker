@@ -2,9 +2,9 @@
 # repository values to the compile-time variables of the app and defines
 # check_embedded. Values are never printed (GitHub also masks secrets).
 #   CENSUS_DEFAULT_SERVICE_ID (secret) -> PS2_DEFAULT_SERVICE_ID
-#   DISCORD_APP_ID (variable, public)  -> PS2_DEFAULT_DISCORD_APP_ID
-#   SYNC_DISCORD_CLIENT_ID (variable, public; Discord application of the
-#     ELME stats server for the online sync) -> PS2_SYNC_DISCORD_CLIENT_ID
+#   SYNC_DISCORD_CLIENT_ID (variable, public; the ELME Discord application:
+#     online sync sign-in and default Rich Presence application)
+#     -> PS2_SYNC_DISCORD_CLIENT_ID
 unset PS2_DEFAULT_SERVICE_ID PS2_DEFAULT_DISCORD_APP_ID PS2_SYNC_DISCORD_CLIENT_ID
 if [ -n "${CENSUS_DEFAULT_SERVICE_ID:-}" ]; then
   case "$CENSUS_DEFAULT_SERVICE_ID" in
@@ -14,25 +14,15 @@ if [ -n "${CENSUS_DEFAULT_SERVICE_ID:-}" ]; then
 else
   echo "built-in Census service ID: not set (example)"
 fi
-if [ -n "${DISCORD_APP_ID:-}" ]; then
-  if [[ "$DISCORD_APP_ID" =~ ^[0-9]{17,20}$ ]]; then
-    export PS2_DEFAULT_DISCORD_APP_ID="$DISCORD_APP_ID"
-    echo "built-in Discord application: set"
-  else
-    echo "DISCORD_APP_ID is not 17-20 digits - ignored"
-  fi
-else
-  echo "built-in Discord application: not set"
-fi
 if [ -n "${SYNC_DISCORD_CLIENT_ID:-}" ]; then
   if [[ "$SYNC_DISCORD_CLIENT_ID" =~ ^[0-9]{17,20}$ ]]; then
     export PS2_SYNC_DISCORD_CLIENT_ID="$SYNC_DISCORD_CLIENT_ID"
-    echo "online sync Discord client ID: set"
+    echo "ELME Discord application (online sync, Rich Presence default): set"
   else
     echo "SYNC_DISCORD_CLIENT_ID is not 17-20 digits - ignored"
   fi
 else
-  echo "online sync Discord client ID: not set (sign-in only with an own client ID)"
+  echo "ELME Discord application: not set (online sync and Rich Presence only with an own ID)"
 fi
 
 # check_embedded <binary>: the built-in service ID is in the binary (proof

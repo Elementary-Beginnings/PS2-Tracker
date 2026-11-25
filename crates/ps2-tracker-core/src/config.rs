@@ -624,6 +624,11 @@ impl Config {
             tracing::info!("service ID \"example\" from the file cleared (empty = default)");
             self.census.service_id.clear();
         }
+        // Rich Presence: empty = the built-in default application; a stored
+        // copy of the default is cleared (the value itself is never logged)
+        if self.discord.migrate() {
+            tracing::info!("Discord application ID equal to the default cleared (empty = default)");
+        }
         if is_default_device_name(&self.voice.output_device) {
             tracing::info!(
                 old = %self.voice.output_device,

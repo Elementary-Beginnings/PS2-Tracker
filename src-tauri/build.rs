@@ -37,6 +37,7 @@ const COMMANDS: &[&str] = &[
     "startup_notices",
     "hotkey_status",
     "service_id_source",
+    "discord_default_available",
     "class_icons",
     "app_info",
     "move_layer_activity",

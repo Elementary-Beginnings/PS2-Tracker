@@ -12,9 +12,11 @@ pub const MIN_UPDATE_SECS: u64 = 15;
 #[serde(default)]
 pub struct DiscordSettings {
     pub enabled: bool,
-    /// Client ID of the user's own Discord application (Developer Portal);
-    /// empty = the application of official builds (`PS2_DEFAULT_DISCORD_APP_ID`
-    /// at compile time), otherwise the feature stays off.
+    /// Client ID of the user's own Discord application (Developer Portal),
+    /// optional. Empty = the ELME Discord application built into official
+    /// builds (the same one the online sync signs in with); builds without it
+    /// need an own ID, otherwise the feature stays off. The built-in ID is
+    /// never written here.
     pub app_id: String,
     pub show_character: bool,
     pub show_kd: bool,
@@ -38,18 +40,22 @@ impl Default for DiscordSettings {
     }
 }
 
-/// Discord application of official builds (a public client ID, not a secret);
-/// unset or empty in builds without it.
-const BUILT_IN_APP_ID: Option<&str> = option_env!("PS2_DEFAULT_DISCORD_APP_ID");
-
 /// Discord application IDs are snowflakes: 17–20 digits.
 pub fn is_app_id(id: &str) -> bool {
     (17..=20).contains(&id.len()) && id.bytes().all(|b| b.is_ascii_digit())
 }
 
-/// The built-in application ID, if this build has a valid one.
+/// The default application ID: the ELME Discord application of official
+/// builds, embedded at compile time for the online sync
+/// (`PS2_SYNC_DISCORD_CLIENT_ID`). A public client ID, but the app never shows
+/// it, logs it or writes it to the configuration.
 pub fn built_in_app_id() -> Option<&'static str> {
-    BUILT_IN_APP_ID.filter(|id| is_app_id(id))
+    crate::online_sync::built_in_client_id()
+}
+
+/// This build has a default application (what the user interface may know).
+pub fn has_default_app_id() -> bool {
+    built_in_app_id().is_some()
 }
 
 impl DiscordSettings {
@@ -60,13 +66,36 @@ impl DiscordSettings {
 
     /// Own ID, otherwise the built-in one of official builds.
     pub fn effective_app_id(&self) -> Option<String> {
+        self.app_id_with(built_in_app_id())
+    }
+
+    fn app_id_with(&self, default: Option<&str>) -> Option<String> {
         if self.app_id_valid() {
             Some(self.app_id.clone())
         } else if self.app_id.is_empty() {
-            built_in_app_id().map(str::to_owned)
+            default.map(str::to_owned)
         } else {
             None
         }
+    }
+
+    /// A stored ID equal to the default is cleared, so the configuration
+    /// never holds the default and follows it when it changes. Returns
+    /// whether something changed.
+    pub fn migrate(&mut self) -> bool {
+        self.migrate_with(built_in_app_id())
+    }
+
+    fn migrate_with(&mut self, default: Option<&str>) -> bool {
+        let trimmed = self.app_id.trim();
+        if trimmed.len() != self.app_id.len() && (trimmed.is_empty() || is_app_id(trimmed)) {
+            self.app_id = trimmed.to_owned();
+        }
+        if default.is_some_and(|d| !self.app_id.is_empty() && self.app_id == d) {
+            self.app_id.clear();
+            return true;
+        }
+        false
     }
 
     pub fn validate(&self) -> Result<(), String> {
@@ -78,7 +107,11 @@ impl DiscordSettings {
 
     /// Active only when switched on and an ID is available (own or built in).
     pub fn active(&self) -> bool {
-        self.enabled && self.effective_app_id().is_some()
+        self.active_with(built_in_app_id())
+    }
+
+    fn active_with(&self, default: Option<&str>) -> bool {
+        self.enabled && self.app_id_with(default).is_some()
     }
 }
 
@@ -148,34 +181,129 @@ pub fn presence(snap: Option<&SessionSnapshot>, s: &DiscordSettings) -> Presence
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn effective_app_id() {
-        let mut d = DiscordSettings {
-            app_id: "112233445566778899".into(),
-            ..Default::default()
-        };
-        assert_eq!(d.effective_app_id().as_deref(), Some("112233445566778899"));
-        // an invalid own ID never falls back to the built-in one
-        d.app_id = "123".into();
-        assert_eq!(d.effective_app_id(), None);
-        d.app_id.clear();
-        assert_eq!(d.effective_app_id().as_deref(), built_in_app_id());
-    }
-
     use super::*;
     use crate::census::NameCache;
     use crate::session::{Session, SessionConfig};
     use crate::tracker::snapshot;
 
+    /// A syntactically valid application ID, made at run time (no ID literal
+    /// in the repository; secret scanners flag those).
+    fn snowflake(seed: u64) -> String {
+        (1_000_000_000_000_000_000u64 + seed * 7_919).to_string()
+    }
+
+    #[test]
+    fn empty_uses_the_default_own_id_wins() {
+        let default = snowflake(1);
+        let own = snowflake(2);
+        let mut d = DiscordSettings::default();
+        assert_eq!(d.app_id_with(Some(&default)), Some(default.clone()));
+        assert_eq!(d.app_id_with(None), None, "no default built in: off");
+        d.app_id = own.clone();
+        assert_eq!(d.app_id_with(Some(&default)), Some(own.clone()));
+        assert_eq!(d.app_id_with(None), Some(own));
+        // an invalid own ID never falls back to the default
+        d.app_id = "123".into();
+        assert_eq!(d.app_id_with(Some(&default)), None);
+        d.app_id.clear();
+        assert_eq!(d.effective_app_id().as_deref(), built_in_app_id());
+        assert_eq!(has_default_app_id(), built_in_app_id().is_some());
+    }
+
+    #[test]
+    fn invalid_ids_are_rejected() {
+        let mut d = DiscordSettings::default();
+        for bad in [
+            "123",
+            "abc",
+            "12345678901234567x",
+            "123456789012345678901",
+            " 1",
+            "-100000000000000000",
+        ] {
+            d.app_id = bad.into();
+            assert!(d.validate().is_err(), "{bad:?} accepted");
+            assert!(!d.app_id_valid());
+        }
+        d.app_id = snowflake(3);
+        assert!(d.validate().is_ok());
+        d.app_id.clear();
+        assert!(d.validate().is_ok(), "empty = default");
+    }
+
+    #[test]
+    fn active_with_and_without_a_default() {
+        let default = snowflake(4);
+        let mut d = DiscordSettings::default();
+        assert!(!d.active_with(Some(&default)), "off by default");
+        d.enabled = true;
+        assert!(d.active_with(Some(&default)));
+        assert!(!d.active_with(None), "local build without own ID: off");
+        d.app_id = snowflake(5);
+        assert!(d.active_with(None));
+    }
+
+    #[test]
+    fn stored_default_is_migrated_to_empty_own_id_kept() {
+        let default = snowflake(6);
+        let own = snowflake(7);
+        let mut d = DiscordSettings {
+            app_id: default.clone(),
+            ..Default::default()
+        };
+        assert!(d.migrate_with(Some(&default)));
+        assert_eq!(d.app_id, "");
+        d.app_id = own.clone();
+        assert!(!d.migrate_with(Some(&default)));
+        assert_eq!(d.app_id, own);
+        d.app_id = format!(" {default} ");
+        assert!(
+            d.migrate_with(Some(&default)),
+            "whitespace around the default"
+        );
+        assert_eq!(d.app_id, "");
+        d.app_id.clear();
+        assert!(!d.migrate_with(None));
+        assert!(!d.migrate_with(Some(&default)));
+    }
+
+    #[test]
+    fn default_never_in_the_serialized_settings() {
+        let default = snowflake(8);
+        let mut d = DiscordSettings {
+            enabled: true,
+            ..Default::default()
+        };
+        assert!(d.active_with(Some(&default)));
+        let json = serde_json::to_string(&d).unwrap();
+        let toml = toml::to_string(&d).unwrap();
+        assert!(!json.contains(&default) && !toml.contains(&default));
+        assert!(json.contains("\"app_id\":\"\""));
+        // the same with the real default of this build, if it has one
+        if let Some(b) = built_in_app_id() {
+            d.app_id = b.to_owned();
+            d.migrate();
+            let cfg = crate::Config {
+                discord: d,
+                ..Default::default()
+            };
+            assert!(!serde_json::to_string(&cfg).unwrap().contains(b));
+            assert!(!toml::to_string(&cfg).unwrap().contains(b));
+        }
+    }
     #[test]
     fn app_id_rules() {
         let mut s = DiscordSettings::default();
         assert!(!s.active(), "off by default");
         s.enabled = true;
-        assert!(!s.active(), "no ID, no presence");
+        assert_eq!(
+            s.active(),
+            has_default_app_id(),
+            "empty: only with a default"
+        );
         s.app_id = "123".into();
         assert!(s.validate().is_err());
-        s.app_id = "112233445566778899".into();
+        s.app_id = snowflake(9);
         assert!(s.validate().is_ok() && s.active());
     }
 

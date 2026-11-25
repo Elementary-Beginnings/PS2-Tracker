@@ -638,6 +638,13 @@ pub fn service_id_source(st: S<'_>) -> String {
         .to_owned()
 }
 
+/// Rich Presence: this build has a default Discord application (the ELME
+/// application). Only whether it exists, never the ID.
+#[tauri::command]
+pub fn discord_default_available() -> bool {
+    ps2_tracker_core::presence::has_default_app_id()
+}
+
 /// Hotkeys that could not be registered (taken by the desktop, invalid).
 #[tauri::command]
 pub fn hotkey_status(st: S<'_>) -> Vec<HotkeyFailure> {

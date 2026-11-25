@@ -1,6 +1,7 @@
 //! Discord Rich Presence over the local Discord IPC (Unix socket
 //! `discord-ipc-N` in the runtime directory, named pipe on Windows). Off by
-//! default; only active with the user's own application ID. Quiet when Discord
+//! default; uses the user's own application ID, or the built-in ELME
+//! application of official builds (never logged). Quiet when Discord
 //! is not running: reconnects with backoff, logs state changes only.
 
 use std::time::{Duration, Instant};

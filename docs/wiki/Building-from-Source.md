@@ -37,10 +37,10 @@ Actions secrets and variables:
 | Variable (compile time) | Purpose |
 |---|---|
 | `PS2_DEFAULT_SERVICE_ID` | built-in Census service ID (letters, digits, `_`) |
-| `PS2_DEFAULT_DISCORD_APP_ID` | built-in Discord application (17–20 digits) |
+| `PS2_SYNC_DISCORD_CLIENT_ID` | the ELME Discord application (17–20 digits): online sync sign-in and default Rich Presence application |
 
-Without them the app uses `example` resp. needs a Discord application ID of
-your own, see [Getting Started](Getting-Started#census-service-id) and
+Without them the app uses `example`, and online sync and Rich Presence need a
+Discord application ID of your own, see [Getting Started](Getting-Started#census-service-id) and
 [Discord Rich Presence](Discord-Rich-Presence).
 
 ## Structure

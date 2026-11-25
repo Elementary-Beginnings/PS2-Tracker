@@ -16,14 +16,10 @@ case "${1:-}" in
     . "$(dirname "$0")/ci_build_env.sh"
     mkdir -p .cargo
     : > .cargo/config.toml
-    if [ -n "${PS2_DEFAULT_SERVICE_ID:-}" ] || [ -n "${PS2_DEFAULT_DISCORD_APP_ID:-}" ] \
-      || [ -n "${PS2_SYNC_DISCORD_CLIENT_ID:-}" ]; then
+    if [ -n "${PS2_DEFAULT_SERVICE_ID:-}" ] || [ -n "${PS2_SYNC_DISCORD_CLIENT_ID:-}" ]; then
       printf '[env]\n' >> .cargo/config.toml
       if [ -n "${PS2_DEFAULT_SERVICE_ID:-}" ]; then
         printf 'PS2_DEFAULT_SERVICE_ID = "%s"\n' "$PS2_DEFAULT_SERVICE_ID" >> .cargo/config.toml
-      fi
-      if [ -n "${PS2_DEFAULT_DISCORD_APP_ID:-}" ]; then
-        printf 'PS2_DEFAULT_DISCORD_APP_ID = "%s"\n' "$PS2_DEFAULT_DISCORD_APP_ID" >> .cargo/config.toml
       fi
       if [ -n "${PS2_SYNC_DISCORD_CLIENT_ID:-}" ]; then
         printf 'PS2_SYNC_DISCORD_CLIENT_ID = "%s"\n' "$PS2_SYNC_DISCORD_CLIENT_ID" >> .cargo/config.toml

@@ -76,6 +76,7 @@
     "allow-startup-notices",
     "allow-hotkey-status",
     "allow-service-id-source",
+    "allow-discord-default-available",
     "allow-class-icons",
     "allow-app-info"
   ]

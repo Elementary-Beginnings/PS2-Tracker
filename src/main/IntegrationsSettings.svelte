@@ -13,12 +13,18 @@
   let found = $state<UpdateInfo | null>(null);
   const d = $derived(config.discord);
   const idOk = $derived(/^\d{17,20}$/.test(d.app_id));
+  // whether this build has the default (ELME) application; never its ID.
+  // Browser preview: as in official builds.
+  let hasDefault = $state(!inTauri());
+  // empty uses the default, otherwise the own ID has to be valid
+  const usable = $derived(d.app_id === "" ? hasDefault : idOk);
 
   onMount(() => {
     if (!inTauri()) {
-      status = { available: false, reason: "no_key", current: "0.2.0" };
+      status = { available: false, reason: "no_key", current: "preview" };
       return;
     }
+    api.discordDefaultAvailable().then((x) => (hasDefault = x)).catch(() => {});
     api.updateStatus().then((s) => (status = s)).catch(() => {});
     const un = on<UpdateInfo>("update-available", (u) => (found = u));
     return () => un.then((f) => f());
@@ -52,6 +58,7 @@
   }
 
   async function saveDiscord() {
+    d.app_id = d.app_id.trim();
     if (d.app_id && !idOk) {
       notify(t.integrations.badId, true);
       return;
@@ -84,11 +91,11 @@
   <h3>{t.integrations.discordTitle}</h3>
   <p class="muted small">{t.integrations.discordIntro}</p>
   <label class="field">{t.integrations.appId}
-    <input bind:value={d.app_id} inputmode="numeric" maxlength="20" placeholder="e.g. 112233445566778899" onchange={saveDiscord} aria-invalid={d.app_id !== "" && !idOk} />
+    <input bind:value={d.app_id} inputmode="numeric" maxlength="20" placeholder={hasDefault ? t.integrations.appIdDefault : t.integrations.appIdNeeded} onchange={saveDiscord} aria-invalid={d.app_id !== "" && !idOk} />
   </label>
-  <p class="hint small">{t.integrations.appIdHint}</p>
-  <label class="check"><input type="checkbox" bind:checked={d.enabled} disabled={!idOk} onchange={saveDiscord} /> {t.integrations.discordEnable}</label>
-  <fieldset class="opts" disabled={!d.enabled || !idOk}>
+  <p class="hint small">{hasDefault ? t.integrations.appIdHint : t.integrations.appIdNoDefault}</p>
+  <label class="check"><input type="checkbox" bind:checked={d.enabled} disabled={!usable} onchange={saveDiscord} /> {t.integrations.discordEnable}</label>
+  <fieldset class="opts" disabled={!d.enabled || !usable}>
     <legend class="small">{t.integrations.show}</legend>
     <label class="check small"><input type="checkbox" bind:checked={d.show_character} onchange={saveDiscord} /> {t.integrations.showCharacter}</label>
     <label class="check small"><input type="checkbox" bind:checked={d.show_kd} onchange={saveDiscord} /> K/D</label>
