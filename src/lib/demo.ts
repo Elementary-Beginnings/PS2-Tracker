@@ -155,6 +155,7 @@ export function demoConfig(p?: URLSearchParams): Config {
       x11_backend: true,
       primary_kd: "true",
       webkit_dmabuf_workaround: true,
+      webkit_compositing_workaround: true,
       debug_console: false,
       accent: "faction",
       accent_custom: "#4fc3c9",

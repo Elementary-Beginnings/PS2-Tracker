@@ -424,6 +424,10 @@ pub struct UiSettings {
     /// Linux + NVIDIA: start WebKitGTK with WEBKIT_DISABLE_DMABUF_RENDERER=1
     /// (grey window otherwise). Takes effect after a restart.
     pub webkit_dmabuf_workaround: bool,
+    /// Linux + NVIDIA: start WebKitGTK with WEBKIT_DISABLE_COMPOSITING_MODE=1
+    /// (the overlay background got darker with every repaint otherwise, see
+    /// `overlay::compositing_fix_wanted`). Takes effect after a restart.
+    pub webkit_compositing_workaround: bool,
     /// The first-start assistant was finished or skipped.
     pub setup_done: bool,
     /// Big K/D on the live page: "true" (kills/deaths) or "revived" (deaths
@@ -447,6 +451,7 @@ impl Default for UiSettings {
             setup_done: false,
             primary_kd: "true".into(),
             webkit_dmabuf_workaround: true,
+            webkit_compositing_workaround: true,
             debug_console: false,
         }
     }

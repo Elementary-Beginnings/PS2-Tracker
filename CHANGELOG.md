@@ -5,6 +5,11 @@ after [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Linux (NVIDIA): the stats overlay could look almost opaque although its background opacity was set low, as if it lay two or three times on top of itself. The app now also starts WebKitGTK with `WEBKIT_DISABLE_COMPOSITING_MODE=1` for the NVIDIA driver, so the transparent windows are painted without accelerated compositing. Switch off with `PS2_TRACKER_NO_COMPOSITING_FIX=1` or `webkit_compositing_workaround = false` under `[ui]` in `config.toml`; a value you set yourself is kept.
+- Overlay: the background blur behind the card is only used in the OBS browser source; in the app window there is nothing behind the page to blur. The overlay keeps a single background layer with the configured opacity (checked by a test).
+
 ## [1.2.3] – 2026-11-25
 
 ### Changed

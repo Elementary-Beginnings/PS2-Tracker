@@ -121,6 +121,7 @@ export interface Config {
     x11_backend: boolean;
     primary_kd: string;
     webkit_dmabuf_workaround: boolean;
+    webkit_compositing_workaround: boolean;
     debug_console: boolean;
     accent: "faction" | "neutral" | "custom";
     accent_custom: string;

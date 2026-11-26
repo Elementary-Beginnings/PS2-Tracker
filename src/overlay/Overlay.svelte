@@ -173,6 +173,7 @@
 <div
   bind:this={root}
   class="ov style-{o.style}"
+  class:obs
   class:ghost={edit && !preview}
   role="presentation"
   class:compact={o.compact}
@@ -326,17 +327,25 @@
     gap: 0.5em;
     width: 22em;
     padding: 0.55em 0.75em 0.65em;
-    /* slightly darker at the bottom, where the small text sits */
+    /* the only background of the overlay: the opacity from the settings is
+       applied here once; the sections inside have no background of their own
+       (separator lines only). Slightly darker at the bottom, where the small
+       text sits. */
     background: linear-gradient(rgb(var(--panel) / var(--bgA)), rgb(var(--panel) / min(1, calc(var(--bgA) + 0.08))));
     border: 1px solid color-mix(in srgb, var(--fc) 45%, rgb(255 255 255 / 12%));
     border-radius: 12px;
     box-shadow:
       0 4px 14px rgb(0 0 0 / 35%),
       inset 0 1px 0 rgb(255 255 255 / 6%);
-    /* where supported (OBS/Chromium), blur bright scenery behind the card */
-    backdrop-filter: blur(6px);
     position: relative;
     overflow: hidden;
+  }
+  /* OBS browser source only: blur the scenery behind the card. In the app
+     window there is nothing behind the page to blur (the game is another
+     window); the filter would only add a backdrop layer that samples the
+     window's own content. */
+  .obs .card {
+    backdrop-filter: blur(6px);
   }
   .card::before {
     content: "";

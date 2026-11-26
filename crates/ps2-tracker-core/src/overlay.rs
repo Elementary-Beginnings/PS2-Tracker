@@ -244,6 +244,26 @@ pub fn popup_window_wanted(active: bool, moving: bool) -> bool {
     active || moving
 }
 
+/// Linux + NVIDIA: start WebKitGTK with `WEBKIT_DISABLE_COMPOSITING_MODE=1`,
+/// so the transparent windows are painted without accelerated compositing.
+/// With the DMA-BUF renderer off (which NVIDIA needs) and XWayland, the
+/// compositor kept old frames of our transparent windows (the pop-up showed
+/// its last frame after hiding, see 1.1.1); the stats overlay, which repaints
+/// every second, looked far darker than its opacity, consistent with the
+/// half-transparent panel lying over its own previous frames (70 % becomes
+/// about 91 % after two and 97 % after three).
+/// `setting` is `ui.webkit_compositing_workaround`, `opt_out` the value of
+/// `PS2_TRACKER_NO_COMPOSITING_FIX` ("1" turns it off), `user_set` whether the
+/// user set the variable already (never overridden).
+pub fn compositing_fix_wanted(
+    nvidia: bool,
+    setting: bool,
+    opt_out: Option<&str>,
+    user_set: bool,
+) -> bool {
+    nvidia && setting && !user_set && opt_out.is_none_or(|v| v.trim() != "1")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -372,5 +392,30 @@ mod tests {
         let mut g = PopupGate::default();
         let (_, u) = g.start(0, 10);
         assert_eq!(u, POPUP_MIN_MS + POPUP_FADE_OUT_MS + POPUP_HIDE_SLACK_MS);
+    }
+
+    #[test]
+    fn compositing_fix_only_for_nvidia_and_switchable() {
+        assert!(crate::config::UiSettings::default().webkit_compositing_workaround);
+        assert!(compositing_fix_wanted(true, true, None, false));
+        assert!(compositing_fix_wanted(true, true, Some(""), false));
+        assert!(compositing_fix_wanted(true, true, Some("0"), false));
+        assert!(
+            !compositing_fix_wanted(false, true, None, false),
+            "other drivers keep compositing"
+        );
+        assert!(
+            !compositing_fix_wanted(true, false, None, false),
+            "setting off"
+        );
+        assert!(
+            !compositing_fix_wanted(true, true, Some("1"), false),
+            "opt-out variable"
+        );
+        assert!(!compositing_fix_wanted(true, true, Some(" 1 "), false));
+        assert!(
+            !compositing_fix_wanted(true, true, None, true),
+            "a value the user set stays"
+        );
     }
 }

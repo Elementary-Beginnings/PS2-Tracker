@@ -68,6 +68,24 @@ Switch off: `PS2_TRACKER_NO_DMABUF_FIX=1 ps2-tracker` or `[ui]`
 `webkit_dmabuf_workaround = false` in `config.toml`. A value you set yourself
 is kept.
 
+## Overlay much darker than its opacity setting (NVIDIA)
+
+Up to 1.2.3 the stats overlay could look almost opaque although its
+background opacity was set low, as if the panel lay two or three times on top
+of itself (seen with KDE Plasma/KWin, XWayland and the NVIDIA driver). The
+overlay draws its background once (one panel, the sections inside have none),
+so the likely cause is the same as for the pop-up below: with the DMA-BUF
+renderer off, old frames of the transparent window stay below the new one.
+The overlay repaints every second, so the half-transparent panel adds up
+(70 % becomes about 91 % after two frames and 97 % after three). Since 1.2.4
+the app also sets `WEBKIT_DISABLE_COMPOSITING_MODE=1` for the NVIDIA driver:
+WebKitGTK then paints without accelerated compositing. The log line
+`graphics environment` shows `compositing_source`. Switch off:
+`PS2_TRACKER_NO_COMPOSITING_FIX=1 ps2-tracker` or `[ui]`
+`webkit_compositing_workaround = false` in `config.toml`. A value you set
+yourself is kept. If the overlay still gets darker than its setting, please
+open a bug report with the log.
+
 ## Overlay or crosshair disappears in fullscreen
 
 - **KDE Plasma:** the app runs through XWayland and uses the “on-screen

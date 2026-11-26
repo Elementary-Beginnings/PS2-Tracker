@@ -183,6 +183,13 @@ fn gpu_driver() -> &'static str {
 ///   the Tauri docs list this workaround for NVIDIA but advise against setting
 ///   it unconditionally (https://v2.tauri.app/develop/debug/linux-graphics/).
 ///   Off with `ui.webkit_dmabuf_workaround = false` or `PS2_TRACKER_NO_DMABUF_FIX=1`.
+/// - `WEBKIT_DISABLE_COMPOSITING_MODE=1` with the NVIDIA driver: without
+///   accelerated compositing the transparent overlay is painted once per frame
+///   with the configured opacity; with it, old frames stayed below the new one
+///   and the background got darker and darker (see
+///   `overlay::compositing_fix_wanted`). Set at start because switching it per
+///   window at runtime left the page blank. Off with
+///   `ui.webkit_compositing_workaround = false` or `PS2_TRACKER_NO_COMPOSITING_FIX=1`.
 ///
 /// `PS2_TRACKER_SET_ENV` tells the restarted process what was set, for the log.
 #[cfg(target_os = "linux")]
@@ -210,6 +217,17 @@ fn prepare_environment(args: &[String]) {
         && cfg.as_ref().is_none_or(|c| c.ui.webkit_dmabuf_workaround)
     {
         add.push(("WEBKIT_DISABLE_DMABUF_RENDERER", "1"));
+    }
+    if ps2_tracker_core::overlay::compositing_fix_wanted(
+        gpu_driver() == "nvidia",
+        cfg.as_ref()
+            .is_none_or(|c| c.ui.webkit_compositing_workaround),
+        std::env::var("PS2_TRACKER_NO_COMPOSITING_FIX")
+            .ok()
+            .as_deref(),
+        set("WEBKIT_DISABLE_COMPOSITING_MODE"),
+    ) {
+        add.push(("WEBKIT_DISABLE_COMPOSITING_MODE", "1"));
     }
     if add.is_empty() {
         return;
@@ -336,8 +354,9 @@ fn log_environment(log_file: Option<&std::path::Path>) {
             webkit_disable_dmabuf_renderer = %var("WEBKIT_DISABLE_DMABUF_RENDERER"),
             dmabuf_source = src("WEBKIT_DISABLE_DMABUF_RENDERER"),
             webkit_disable_compositing_mode = %var("WEBKIT_DISABLE_COMPOSITING_MODE"),
+            compositing_source = src("WEBKIT_DISABLE_COMPOSITING_MODE"),
             gdk_backend_source = src("GDK_BACKEND"),
-            "graphics environment (DMA-BUF renderer is switched off for the NVIDIA driver, see the wiki page Troubleshooting-and-FAQ)"
+            "graphics environment (DMA-BUF renderer and compositing mode are switched off for the NVIDIA driver, see the wiki page Troubleshooting-and-FAQ)"
         );
     }
 }
