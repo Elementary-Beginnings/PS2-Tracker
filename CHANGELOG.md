@@ -5,6 +5,8 @@ after [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.4] – 2026-11-27
+
 ### Fixed
 
 - Linux (NVIDIA): the stats overlay could look almost opaque although its background opacity was set low, as if it lay two or three times on top of itself. The app now also starts WebKitGTK with `WEBKIT_DISABLE_COMPOSITING_MODE=1` for the NVIDIA driver, so the transparent windows are painted without accelerated compositing. Switch off with `PS2_TRACKER_NO_COMPOSITING_FIX=1` or `webkit_compositing_workaround = false` under `[ui]` in `config.toml`; a value you set yourself is kept.
